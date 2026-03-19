@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AppHeader } from '@/components/AppHeader';
 import { useAuth } from '@/context/AuthContext';
 import { useResumeStore } from '@/store/resumeStore';
-import { Loader2, Sparkles, Download, Save, CheckCircle2, FileText, Building, User, Briefcase } from 'lucide-react';
+import { Loader2, Sparkles, Download, Save, CheckCircle2, FileText, Building, User, Briefcase, ChevronDown } from 'lucide-react';
 
 export default function CoverLetterPage() {
   const { token } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const resumeData = useResumeStore(s => s.resumeData);
+  const storeResumeData = useResumeStore(s => s.resumeData);
   const selectedFont = useResumeStore(s => s.selectedFont);
 
+  const [resumes, setResumes] = useState<any[]>([]);
+  const [selectedResumeId, setSelectedResumeId] = useState<string>('current');
+  const [resumeData, setResumeData] = useState(storeResumeData);
+  const [loadingResumes, setLoadingResumes] = useState(false);
   const [jobTitle, setJobTitle] = useState('');
   const [company, setCompany] = useState('');
   const [recipientName, setRecipientName] = useState('Hiring Manager');
@@ -23,6 +27,27 @@ export default function CoverLetterPage() {
   const [saved, setSaved] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [letterId, setLetterId] = useState<string | null>(null);
+
+  // Fetch user's saved resumes
+  useEffect(() => {
+    if (!token) return;
+    setLoadingResumes(true);
+    fetch('/api/resumes', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setResumes(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setLoadingResumes(false));
+  }, [token]);
+
+  // When selected resume changes, load its data
+  useEffect(() => {
+    if (selectedResumeId === 'current') {
+      setResumeData(storeResumeData);
+    } else {
+      const found = resumes.find(r => r.resumeId === selectedResumeId);
+      if (found?.resumeData) setResumeData(found.resumeData);
+    }
+  }, [selectedResumeId, resumes, storeResumeData]);
 
   const generate = async () => {
     if (!jobTitle || !company) return;
@@ -152,6 +177,37 @@ Instructions:
               <input value={company} onChange={e => setCompany(e.target.value)}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="e.g. Google" />
+            </div>
+
+            {/* Resume selector */}
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5" /> Use Resume As Reference *
+              </label>
+              {loadingResumes ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading your resumes...
+                </div>
+              ) : (
+                <select
+                  value={selectedResumeId}
+                  onChange={e => setSelectedResumeId(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="current">Current resume in editor</option>
+                  {resumes.map(r => (
+                    <option key={r.resumeId} value={r.resumeId}>
+                      {r.name || r.resumeData?.personalInfo?.fullName || 'Untitled'} — {r.templateId}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {selectedResumeId !== 'current' && resumeData?.personalInfo?.fullName && (
+                <p className="text-xs text-emerald-600 mt-1.5 flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Using: {resumeData.personalInfo.fullName}'s resume
+                </p>
+              )}
             </div>
 
             <div>
