@@ -42,3 +42,16 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "  Done! Both tables are ready."
 echo "  Billing mode: Pay-per-request (free tier eligible)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+echo ""
+echo "▶ Creating resumecraft-cover-letters table..."
+aws dynamodb create-table \
+  --table-name resumecraft-cover-letters \
+  --attribute-definitions \
+    AttributeName=userId,AttributeType=S \
+    AttributeName=letterId,AttributeType=S \
+  --key-schema \
+    AttributeName=userId,KeyType=HASH \
+    AttributeName=letterId,KeyType=RANGE \
+  --billing-mode PAY_PER_REQUEST \
+  --region $REGION && echo "  ✅ resumecraft-cover-letters created"

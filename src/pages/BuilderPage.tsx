@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Trash2, CheckCircle2, Loader2, GripVertical, Type } from 'lucide-react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { AISuggestions } from '@/components/AISuggestions';
 import { ATS_FONTS } from '@/store/resumeStore';
 
 // ── Section order types ───────────────────────────────────────────────
@@ -41,6 +42,7 @@ const BuilderPage = () => {
   const [resumeName, setResumeName] = useState('Untitled Resume');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [sectionOrder, setSectionOrder] = useState<SectionKey[]>(DEFAULT_SECTION_ORDER);
+  const [jobType, setJobType] = useState('');
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstLoad = useRef(true);
 
@@ -79,12 +81,12 @@ const BuilderPage = () => {
       if (resumeId) {
         await fetch(`/api/resumes/${resumeId}`, {
           method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ templateId, resumeData: data, name }),
+          body: JSON.stringify({ templateId, resumeData: data, name, jobType }),
         });
       } else {
         const res = await fetch('/api/resumes', {
           method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ templateId, resumeData: data, name }),
+          body: JSON.stringify({ templateId, resumeData: data, name, jobType }),
         });
         const created = await res.json();
         if (created.resumeId) setResumeId(created.resumeId);
@@ -240,7 +242,7 @@ const BuilderPage = () => {
     <div className="min-h-screen bg-surface">
       <AppHeader />
       <div className="grid h-[calc(100vh-3.5rem)] grid-cols-1 lg:grid-cols-[450px_1fr]">
-        <aside className="overflow-y-auto border-r border-border bg-card p-6">
+        <aside className="overflow-y-auto border-r border-border bg-card p-4 md:p-6">
           <div className="mb-4">
             <div className="flex items-center justify-between mb-1">
               <h1 className="text-lg font-semibold">Resume Editor</h1>
@@ -250,7 +252,12 @@ const BuilderPage = () => {
                 {saveStatus === 'error' && <span className="text-red-500">Save failed</span>}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">Changes auto-save. <span className="text-primary font-medium">Drag ⠿ to reorder sections.</span></p>
+            <p className="text-xs text-muted-foreground">Changes auto-save. <span className="text-primary font-medium">Drag ⠿ to reorder.</span></p>
+          </div>
+
+          {/* AI Suggestions */}
+          <div className="mb-4">
+            <AISuggestions data={store.resumeData} />
           </div>
 
           {/* Resume Name */}
@@ -279,6 +286,12 @@ const BuilderPage = () => {
             </p>
           </div>
 
+
+          {/* Job Type */}
+          <div className="mb-4">
+            <Label className="text-xs text-muted-foreground">Job Type / Target Role (for filtering)</Label>
+            <Input className="mt-1" value={jobType} onChange={e => setJobType(e.target.value)} placeholder="e.g. Software Engineer, Data Analyst..." />
+          </div>
 
           {/* Font Selector */}
           <div className="mb-5">

@@ -14,6 +14,9 @@ import LoginPage from "./pages/LoginPage.tsx";
 import SignupPage from "./pages/SignupPage.tsx";
 import VerifyEmailPage from "./pages/VerifyEmailPage.tsx";
 import HistoryPage from "./pages/HistoryPage.tsx";
+import CoverLetterPage from "./pages/CoverLetterPage.tsx";
+import CoverLettersListPage from "./pages/CoverLettersListPage.tsx";
+import SharedResumePage from "./pages/SharedResumePage.tsx";
 import { ResumeChatbot } from "./components/ResumeChatbot.tsx";
 import { ATSChecker } from "./components/ATSChecker.tsx";
 import { useResumeStore } from "./store/resumeStore.ts";
@@ -25,7 +28,8 @@ const FloatingWidgets = () => {
   const resumeData = useResumeStore(s => s.resumeData);
   const showATS = location.pathname.startsWith('/builder') || location.pathname.startsWith('/resume');
   const isAuthPage = ['/login', '/signup', '/verify-email'].includes(location.pathname);
-  if (isAuthPage) return null;
+  const isSharedPage = location.pathname.startsWith('/shared');
+  if (isAuthPage || isSharedPage) return null;
   return (
     <>
       <ResumeChatbot />
@@ -46,10 +50,13 @@ const App = () => (
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/shared/:shareToken" element={<SharedResumePage />} />
 
             {/* Protected */}
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+            <Route path="/cover-letters" element={<ProtectedRoute><CoverLettersListPage /></ProtectedRoute>} />
+            <Route path="/cover-letter" element={<ProtectedRoute><CoverLetterPage /></ProtectedRoute>} />
             <Route path="/preview/:templateId" element={<ProtectedRoute><TemplatePreviewPage /></ProtectedRoute>} />
             <Route path="/builder/:templateId" element={<ProtectedRoute><BuilderPage /></ProtectedRoute>} />
             <Route path="/resume/:templateId" element={<ProtectedRoute><ResumePreviewPage /></ProtectedRoute>} />

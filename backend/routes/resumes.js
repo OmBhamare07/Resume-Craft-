@@ -78,3 +78,48 @@ router.delete("/:resumeId", async (req, res) => {
 });
 
 module.exports = router;
+
+// PUT /api/resumes/:resumeId/share — generate share token
+router.put("/:resumeId/share", async (req, res) => {
+  try {
+    const { v4: uuidv4 } = require("uuid");
+    const shareToken = uuidv4();
+    await db.updateResume(req.user.userId, req.params.resumeId, {
+      shareToken,
+      shareEnabled: true,
+    });
+    res.json({ shareToken, shareUrl: `${process.env.FRONTEND_URL || ''}/shared/${shareToken}` });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// PUT /api/resumes/:resumeId/unshare
+router.put("/:resumeId/unshare", async (req, res) => {
+  try {
+    await db.updateResume(req.user.userId, req.params.resumeId, {
+      shareToken: null,
+      shareEnabled: false,
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// PUT /api/resumes/:resumeId/scores — save ATS score history
+router.put("/:resumeId/scores", async (req, res) => {
+  try {
+    const { score, jobRole } = req.body;
+    const resume = await db.getResume(req.user.userId, req.params.resumeId);
+    if (!resume) return res.status(404).json({ error: "Resume not found" });
+    const scores = resume.atsScores || [];
+    scores.push({ score, jobRole, date: new Date().toISOString() });
+    // Keep last 20 scores
+    const trimmed = scores.slice(-20);
+    await db.updateResume(req.user.userId, req.params.resumeId, { atsScores: trimmed });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
