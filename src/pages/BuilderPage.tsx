@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, CheckCircle2, Loader2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Loader2, GripVertical, Type } from 'lucide-react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { ATS_FONTS } from '@/store/resumeStore';
 
 // ── Section order types ───────────────────────────────────────────────
 type SectionKey = 'personalInfo' | 'objective' | 'skills' | 'projects' | 'experience' | 'education';
@@ -32,6 +33,8 @@ const BuilderPage = () => {
   const resumeIdParam = searchParams.get('resumeId');
   const navigate = useNavigate();
   const store = useResumeStore();
+  const selectedFont = useResumeStore(s => s.selectedFont);
+  const setSelectedFont = useResumeStore(s => s.setSelectedFont);
   const { token } = useAuth();
 
   const [resumeId, setResumeId] = useState<string | null>(resumeIdParam);
@@ -274,6 +277,32 @@ const BuilderPage = () => {
             <p className="text-xs text-muted-foreground mt-1.5">
               All fonts listed are ATS-compatible. Excellent = best for automated scanners.
             </p>
+          </div>
+
+
+          {/* Font Selector */}
+          <div className="mb-5">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1.5 mb-1.5">
+              <Type className="h-3 w-3" /> Resume Font <span className="text-green-600 font-medium">(ATS-Approved Only)</span>
+            </Label>
+            <div className="grid grid-cols-2 gap-2">
+              {ATS_FONTS.map(font => (
+                <button
+                  key={font.value}
+                  onClick={() => setSelectedFont(font.value)}
+                  className={`flex items-center justify-between rounded-lg border px-3 py-2 text-left transition ${
+                    selectedFont === font.value
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-border hover:border-primary/50 hover:bg-muted'
+                  }`}
+                >
+                  <span className="text-sm" style={{ fontFamily: font.value }}>{font.label}</span>
+                  <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
+                    font.atsScore === 'Excellent' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                  }`}>{font.atsScore}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Draggable sections */}
