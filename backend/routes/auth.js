@@ -111,7 +111,7 @@ router.get("/verify-email", async (req, res) => {
       return res.status(400).json({ error: "Verification link has expired. Please sign up again." });
     }
 
-    // Mark user as verified
+
     await docClient.send(new UpdateCommand({
       TableName: "resumecraft-users",
       Key: { userId: user.userId },
