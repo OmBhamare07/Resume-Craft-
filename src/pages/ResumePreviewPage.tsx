@@ -3,7 +3,7 @@ import { useResumeStore, templates } from '@/store/resumeStore';
 import { templateComponents } from '@/templates/ResumeTemplates';
 import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
-import { Download, Pencil, LayoutTemplate, FileText, Loader2 } from 'lucide-react';
+import { Download, Pencil, LayoutTemplate, Loader2 } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -18,7 +18,6 @@ const ResumePreviewPage = () => {
   const { token } = useAuth();
   const resumeRef = useRef<HTMLDivElement>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
-  const [docLoading, setDocLoading] = useState(false);
 
   const template = templates.find((t) => t.id === templateId);
   const TemplateComponent = templateId ? templateComponents[templateId] : null;
@@ -76,127 +75,6 @@ const ResumePreviewPage = () => {
     }
   };
 
-  // ── Word document download ─────────────────────────────────────────
-  const handleDownloadWord = async () => {
-    setDocLoading(true);
-    try {
-      const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType } = await import('docx');
-      const d = resumeData;
-      const fontName = selectedFont.split(',')[0].replace(/['"]/g, '').trim() || 'Arial';
-
-      const t = (text: string, bold = false, size = 22) => new TextRun({ text, bold, size, font: fontName, color: '1a1a1a' });
-      const hr = () => new Paragraph({
-        border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '2563eb', space: 1 } },
-        spacing: { after: 80 },
-        children: [new TextRun({ text: '' })],
-      });
-
-      const sectionHeading = (title: string) => new Paragraph({
-        children: [t(title.toUpperCase(), true, 20)],
-        spacing: { before: 200, after: 80 },
-        border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: '2563eb', space: 1 } },
-      });
-
-      const children: any[] = [];
-
-      // Header
-      children.push(new Paragraph({
-        children: [t(d.personalInfo.fullName || 'Your Name', true, 36)],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 80 },
-      }));
-
-      const contactParts = [d.personalInfo.email, d.personalInfo.phone, d.personalInfo.location, d.personalInfo.linkedinUrl].filter(Boolean);
-      if (contactParts.length) {
-        children.push(new Paragraph({
-          children: [t(contactParts.join('  |  '), false, 18)],
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 160 },
-        }));
-      }
-
-      // Objective
-      if (d.objective) {
-        children.push(sectionHeading('Professional Summary'));
-        children.push(new Paragraph({ children: [t(d.objective, false, 20)], spacing: { after: 120 } }));
-      }
-
-      // Experience
-      if (d.experience.length) {
-        children.push(sectionHeading('Work Experience'));
-        d.experience.forEach(e => {
-          children.push(new Paragraph({
-            children: [t(e.company, true, 22), t(`  |  ${e.type}`, false, 20)],
-            spacing: { after: 40 },
-          }));
-          if (e.timePeriod) children.push(new Paragraph({ children: [t(e.timePeriod, false, 18)], spacing: { after: 60 } }));
-          if (e.responsibilities) {
-            e.responsibilities.split('.').filter(r => r.trim()).forEach(r => {
-              children.push(new Paragraph({
-                children: [t(`• ${r.trim()}`, false, 20)],
-                spacing: { after: 40 },
-              }));
-            });
-          }
-          children.push(new Paragraph({ children: [t('')], spacing: { after: 80 } }));
-        });
-      }
-
-      // Skills
-      if (d.skillGroups.length) {
-        children.push(sectionHeading('Skills'));
-        d.skillGroups.forEach(g => {
-          children.push(new Paragraph({
-            children: [t(`${g.category}: `, true, 20), t(g.skills, false, 20)],
-            spacing: { after: 60 },
-          }));
-        });
-      }
-
-      // Projects
-      if (d.projects.length) {
-        children.push(sectionHeading('Projects'));
-        d.projects.forEach(p => {
-          children.push(new Paragraph({ children: [t(p.name, true, 22)], spacing: { after: 40 } }));
-          if (p.description) children.push(new Paragraph({ children: [t(p.description, false, 20)], spacing: { after: 40 } }));
-          if (p.technologies) children.push(new Paragraph({ children: [t(`Technologies: ${p.technologies}`, false, 18)], spacing: { after: 80 } }));
-        });
-      }
-
-      // Education
-      if (d.education.length) {
-        children.push(sectionHeading('Education'));
-        d.education.forEach(e => {
-          children.push(new Paragraph({
-            children: [t(e.degree, true, 22), t(`  —  ${e.institute}`, false, 20)],
-            spacing: { after: 40 },
-          }));
-          const eduMeta = [e.period, e.marks].filter(Boolean).join('  |  ');
-          if (eduMeta) children.push(new Paragraph({ children: [t(eduMeta, false, 18)], spacing: { after: 80 } }));
-        });
-      }
-
-      const doc = new Document({
-        sections: [{
-          properties: {},
-          children,
-        }],
-      });
-
-      const blob = await Packer.toBlob(doc);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${(d.personalInfo.fullName || 'Resume').replace(/\s+/g, '_')}_Resume.docx`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Word error:', err);
-      alert('Word document generation failed. Please try again.');
-    } finally {
-      setDocLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-surface">
@@ -215,10 +93,6 @@ const ResumePreviewPage = () => {
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/')}>
               <LayoutTemplate className="mr-1.5 h-3.5 w-3.5" /> Change Template
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleDownloadWord} disabled={docLoading}>
-              {docLoading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <FileText className="mr-1.5 h-3.5 w-3.5" />}
-              Download Word
             </Button>
             <Button size="sm" onClick={handleDownloadPDF} disabled={pdfLoading}>
               {pdfLoading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
