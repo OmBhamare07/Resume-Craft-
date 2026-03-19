@@ -52,12 +52,33 @@ export interface Template {
   category: string;
 }
 
+// ── ATS-approved fonts ────────────────────────────────────────────────
+export interface ATSFont {
+  name: string;
+  value: string;
+  label: string;
+  atsScore: 'Excellent' | 'Good';
+}
+
+export const ATS_FONTS: ATSFont[] = [
+  { name: 'Arial',            value: 'Arial, sans-serif',                    label: 'Arial',            atsScore: 'Excellent' },
+  { name: 'Calibri',          value: 'Calibri, sans-serif',                  label: 'Calibri',          atsScore: 'Excellent' },
+  { name: 'Times New Roman',  value: '"Times New Roman", Times, serif',       label: 'Times New Roman',  atsScore: 'Excellent' },
+  { name: 'Georgia',          value: 'Georgia, serif',                        label: 'Georgia',          atsScore: 'Excellent' },
+  { name: 'Helvetica',        value: 'Helvetica, Arial, sans-serif',          label: 'Helvetica',        atsScore: 'Excellent' },
+  { name: 'Garamond',         value: 'Garamond, Georgia, serif',              label: 'Garamond',         atsScore: 'Good'      },
+  { name: 'Cambria',          value: 'Cambria, Georgia, serif',               label: 'Cambria',          atsScore: 'Good'      },
+  { name: 'Trebuchet MS',     value: '"Trebuchet MS", Helvetica, sans-serif', label: 'Trebuchet MS',     atsScore: 'Good'      },
+  { name: 'Verdana',          value: 'Verdana, Geneva, sans-serif',           label: 'Verdana',          atsScore: 'Good'      },
+  { name: 'Tahoma',           value: 'Tahoma, Geneva, sans-serif',            label: 'Tahoma',           atsScore: 'Good'      },
+];
+
 export const templates: Template[] = [
-  { id: 'modern', name: 'Modern ATS Template', category: 'Modern' },
+  { id: 'modern',       name: 'Modern ATS Template',       category: 'Modern'       },
   { id: 'professional', name: 'Professional ATS Template', category: 'Professional' },
-  { id: 'minimal', name: 'Minimal ATS Template', category: 'Minimal' },
-  { id: 'corporate', name: 'Corporate ATS Template', category: 'Corporate' },
-  { id: 'simple', name: 'Simple ATS Template', category: 'Simple' },
+  { id: 'minimal',      name: 'Minimal ATS Template',      category: 'Minimal'      },
+  { id: 'corporate',    name: 'Corporate ATS Template',    category: 'Corporate'    },
+  { id: 'simple',       name: 'Simple ATS Template',       category: 'Simple'       },
 ];
 
 const defaultResume: ResumeData = {
@@ -100,9 +121,11 @@ interface ResumeStore {
   currentResumeId: number | null;
   setCurrentResumeId: (id: number | null) => void;
   selectedTemplateId: string;
+  selectedFont: string;
   resumeData: ResumeData;
   isUsingMockData: boolean;
   setSelectedTemplate: (id: string) => void;
+  setSelectedFont: (font: string) => void;
   setResumeData: (data: ResumeData) => void;
   updatePersonalInfo: (info: Partial<PersonalInfo>) => void;
   setObjective: (text: string) => void;
@@ -126,10 +149,12 @@ const genId = () => Math.random().toString(36).slice(2, 9);
 
 export const useResumeStore = create<ResumeStore>((set) => ({
   selectedTemplateId: 'modern',
+  selectedFont: 'Arial, sans-serif',
   currentResumeId: null,
   resumeData: defaultResume,
   isUsingMockData: false,
   setSelectedTemplate: (id) => set({ selectedTemplateId: id }),
+  setSelectedFont: (font) => set({ selectedFont: font }),
   setCurrentResumeId: (id) => set({ currentResumeId: id }),
   setResumeData: (data) => set({ resumeData: data }),
   updatePersonalInfo: (info) =>

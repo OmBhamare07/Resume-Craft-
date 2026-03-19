@@ -8,7 +8,7 @@ interface TemplateProps {
 // 1. MODERN — single column, blue left-border accents
 // ─────────────────────────────────────────────
 export const ModernTemplate = ({ data }: TemplateProps) => (
-  <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#1a1a1a', padding: '36px 40px', lineHeight: '1.5', background: '#fff', height: '100%' }}>
+  <div style={{ fontFamily: 'inherit', fontSize: '13px', color: '#1a1a1a', padding: '36px 40px', lineHeight: '1.5', background: '#fff', height: '100%' }}>
     <div style={{ borderLeft: '4px solid #2563eb', paddingLeft: '14px', marginBottom: '20px' }}>
       <h1 style={{ fontSize: '22px', fontWeight: 700, margin: 0, color: '#1e3a8a' }}>{data.personalInfo.fullName || 'Your Name'}</h1>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '6px', fontSize: '12px', color: '#555' }}>
@@ -84,7 +84,7 @@ export const ModernTemplate = ({ data }: TemplateProps) => (
 // 2. PROFESSIONAL — two-column sidebar layout
 // ─────────────────────────────────────────────
 export const ProfessionalTemplate = ({ data }: TemplateProps) => (
-  <div style={{ fontFamily: 'Georgia, serif', fontSize: '12px', color: '#1a1a1a', display: 'flex', height: '100%', background: '#fff' }}>
+  <div style={{ fontFamily: 'inherit', fontSize: '12px', color: '#1a1a1a', display: 'flex', height: '100%', background: '#fff' }}>
     {/* Sidebar */}
     <div style={{ width: '32%', background: '#1e3a5f', color: '#fff', padding: '28px 18px', flexShrink: 0 }}>
       <h1 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 4px', color: '#fff', lineHeight: 1.2 }}>{data.personalInfo.fullName || 'Your Name'}</h1>
@@ -164,7 +164,7 @@ export const ProfessionalTemplate = ({ data }: TemplateProps) => (
 // 3. MINIMAL — ultra-clean, no color, serif
 // ─────────────────────────────────────────────
 export const MinimalTemplate = ({ data }: TemplateProps) => (
-  <div style={{ fontFamily: "'Times New Roman', serif", fontSize: '13px', color: '#111', padding: '40px 48px', lineHeight: '1.6', background: '#fff', height: '100%' }}>
+  <div style={{ fontFamily: 'inherit', fontSize: '13px', color: '#111', padding: '40px 48px', lineHeight: '1.6', background: '#fff', height: '100%' }}>
     <div style={{ textAlign: 'center', marginBottom: '24px' }}>
       <h1 style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 6px', letterSpacing: '2px', textTransform: 'uppercase' }}>{data.personalInfo.fullName || 'Your Name'}</h1>
       <div style={{ fontSize: '12px', color: '#444', display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '12px' }}>
@@ -236,7 +236,7 @@ export const MinimalTemplate = ({ data }: TemplateProps) => (
 // 4. CORPORATE — bold dark header, classic lines
 // ─────────────────────────────────────────────
 export const CorporateTemplate = ({ data }: TemplateProps) => (
-  <div style={{ fontFamily: 'Calibri, Arial, sans-serif', fontSize: '13px', color: '#1a1a1a', background: '#fff', height: '100%' }}>
+  <div style={{ fontFamily: 'inherit', fontSize: '13px', color: '#1a1a1a', background: '#fff', height: '100%' }}>
     {/* Header */}
     <div style={{ background: '#0f172a', color: '#fff', padding: '24px 36px' }}>
       <h1 style={{ fontSize: '26px', fontWeight: 700, margin: '0 0 8px', letterSpacing: '1px' }}>{data.personalInfo.fullName || 'Your Name'}</h1>
@@ -313,7 +313,7 @@ export const CorporateTemplate = ({ data }: TemplateProps) => (
 // 5. SIMPLE — classic bullet-point ATS format
 // ─────────────────────────────────────────────
 export const SimpleTemplate = ({ data }: TemplateProps) => (
-  <div style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '12px', color: '#000', padding: '32px 40px', lineHeight: '1.5', background: '#fff', height: '100%' }}>
+  <div style={{ fontFamily: 'inherit', fontSize: '12px', color: '#000', padding: '32px 40px', lineHeight: '1.5', background: '#fff', height: '100%' }}>
     <div style={{ textAlign: 'center', marginBottom: '16px' }}>
       <h1 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 4px' }}>{data.personalInfo.fullName || 'Your Name'}</h1>
       <div style={{ fontSize: '11px', color: '#333' }}>

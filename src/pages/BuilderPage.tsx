@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { useResumeStore, templates } from '@/store/resumeStore';
+import { useResumeStore, templates, ATS_FONTS } from '@/store/resumeStore';
 import { templateComponents } from '@/templates/ResumeTemplates';
 import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
@@ -251,9 +251,29 @@ const BuilderPage = () => {
           </div>
 
           {/* Resume Name */}
-          <div className="mb-5">
+          <div className="mb-4">
             <Label className="text-xs text-muted-foreground">Resume Name</Label>
             <Input className="mt-1" value={resumeName} onChange={e => setResumeName(e.target.value)} placeholder="e.g. Software Engineer Resume" />
+          </div>
+
+          {/* ATS Font Selector */}
+          <div className="mb-5 rounded-xl border border-border bg-muted/30 p-3">
+            <Label className="text-xs font-semibold text-foreground mb-2 block">Resume Font</Label>
+            <select
+              value={store.selectedFont}
+              onChange={e => store.setSelectedFont(e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              style={{ fontFamily: store.selectedFont }}
+            >
+              {ATS_FONTS.map(f => (
+                <option key={f.name} value={f.value} style={{ fontFamily: f.value }}>
+                  {f.label} ({f.atsScore} ATS)
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              All fonts listed are ATS-compatible. Excellent = best for automated scanners.
+            </p>
           </div>
 
           {/* Draggable sections */}
@@ -299,7 +319,10 @@ const BuilderPage = () => {
         </aside>
 
         <main className="hidden overflow-y-auto bg-muted p-8 lg:flex lg:justify-center">
-          <div className="aspect-[1/1.414] w-full max-w-[800px] origin-top scale-[0.85] bg-card shadow-elevated ring-1 ring-border">
+          <div
+            className="aspect-[1/1.414] w-full max-w-[800px] origin-top scale-[0.85] bg-card shadow-elevated ring-1 ring-border"
+            style={{ fontFamily: store.selectedFont }}
+          >
             <TemplateComponent data={data} />
           </div>
         </main>
