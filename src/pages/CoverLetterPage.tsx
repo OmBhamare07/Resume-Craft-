@@ -3,12 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { AppHeader } from '@/components/AppHeader';
 import { useAuth } from '@/context/AuthContext';
 import { useResumeStore } from '@/store/resumeStore';
-import { Loader2, Sparkles, Download, Save, CheckCircle2, FileText, Building, User, Briefcase, ChevronDown } from 'lucide-react';
+import { Loader2, Sparkles, Download, Save, CheckCircle2, FileText, Building, User, Briefcase } from 'lucide-react';
 
 export default function CoverLetterPage() {
   const { token } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const storeResumeData = useResumeStore(s => s.resumeData);
   const selectedFont = useResumeStore(s => s.selectedFont);
 
