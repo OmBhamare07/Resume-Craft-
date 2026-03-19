@@ -2,6 +2,8 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, ScanCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 const db = require("../services/dynamodb");
 const { sendVerificationEmail } = require("../services/email");
 const authMiddleware = require("../middleware/auth");
@@ -14,6 +16,11 @@ function signToken(user) {
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
+}
+
+function getDynamoClient() {
+  const client = new DynamoDBClient({ region: process.env.AWS_REGION || "us-east-1" });
+  return DynamoDBDocumentClient.from(client);
 }
 
 // POST /api/auth/signup
@@ -82,29 +89,39 @@ router.get("/verify-email", async (req, res) => {
     const { token } = req.query;
     if (!token) return res.status(400).json({ error: "Token required" });
 
-    const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-    const { DynamoDBDocumentClient, ScanCommand } = require("@aws-sdk/lib-dynamodb");
-    const client = new DynamoDBClient({ region: process.env.AWS_REGION || "us-east-1" });
-    const docClient = DynamoDBDocumentClient.from(client);
+    const docClient = getDynamoClient();
 
+    // Scan for user with this verification token
     const result = await docClient.send(new ScanCommand({
       TableName: "resumecraft-users",
       FilterExpression: "verificationToken = :t",
       ExpressionAttributeValues: { ":t": token },
-      Limit: 1,
     }));
 
+    console.log("Verify scan result count:", result.Items?.length);
+
     const user = result.Items?.[0];
-    if (!user) return res.status(400).json({ error: "Invalid or expired verification link" });
-    if (Date.now() > user.verificationExpiry)
+    if (!user) {
+      console.log("No user found with token:", token);
+      return res.status(400).json({ error: "Invalid or expired verification link" });
+    }
+
+    if (Date.now() > user.verificationExpiry) {
+      console.log("Token expired for user:", user.email);
       return res.status(400).json({ error: "Verification link has expired. Please sign up again." });
+    }
 
-    await db.updateUser(user.userId, {
-      isVerified: true,
-      verificationToken: null,
-      verificationExpiry: null,
-    });
+    // Mark user as verified
+    await docClient.send(new UpdateCommand({
+      TableName: "resumecraft-users",
+      Key: { userId: user.userId },
+      UpdateExpression: "SET isVerified = :v REMOVE verificationToken, verificationExpiry",
+      ExpressionAttributeValues: {
+        ":v": true,
+      },
+    }));
 
+    console.log("User verified successfully:", user.email);
     res.json({ message: "Email verified successfully! You can now log in." });
   } catch (err) {
     console.error("Verify email error:", err);
