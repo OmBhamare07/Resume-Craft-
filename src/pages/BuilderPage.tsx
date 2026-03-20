@@ -362,7 +362,7 @@ const BuilderPage = () => {
             className="w-full max-w-[800px] bg-card shadow-elevated ring-1 ring-border"
             style={{ fontFamily: selectedFont, minHeight: '1130px' }}
           >
-            <TemplateComponent data={data} />
+            <TemplateComponent data={data} sectionOrder={sectionOrder} />
           </div>
         </main>
       </div>

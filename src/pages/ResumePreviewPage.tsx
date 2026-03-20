@@ -17,6 +17,7 @@ const ResumePreviewPage = () => {
   const store = useResumeStore();
   const { token } = useAuth();
   const [resumeId, setResumeId] = useState<string | null>(resumeIdParam);
+  const [sectionOrder, setSectionOrder] = useState<string[]>([]);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -29,7 +30,7 @@ const ResumePreviewPage = () => {
     if (!resumeIdParam || !token) return;
     fetch(`/api/resumes/${resumeIdParam}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) { store.setResumeData(data.resumeData); setResumeId(data.resumeId); } })
+      .then(data => { if (data) { store.setResumeData(data.resumeData); setResumeId(data.resumeId); if (data.sectionOrder) setSectionOrder(data.sectionOrder); } })
       .catch(console.error);
   }, [resumeIdParam, token]);
 
@@ -165,7 +166,7 @@ const ResumePreviewPage = () => {
             className="w-full bg-white shadow-elevated ring-1 ring-border"
             style={{ fontFamily: selectedFont, minHeight: '1130px' }}
           >
-            <TemplateComponent data={resumeData} />
+            <TemplateComponent data={resumeData} sectionOrder={sectionOrder.length > 0 ? sectionOrder : undefined} />
           </div>
         </div>
       </main>

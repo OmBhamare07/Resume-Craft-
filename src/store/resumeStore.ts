@@ -79,6 +79,11 @@ export const templates: Template[] = [
   { id: 'minimal',      name: 'Minimal ATS Template',      category: 'Minimal'      },
   { id: 'corporate',    name: 'Corporate ATS Template',    category: 'Corporate'    },
   { id: 'simple',       name: 'Simple ATS Template',       category: 'Simple'       },
+  { id: 'executive',    name: 'Executive ATS Template',    category: 'Executive'    },
+  { id: 'tech',         name: 'Tech ATS Template',         category: 'Tech'         },
+  { id: 'creative',     name: 'Creative ATS Template',     category: 'Creative'     },
+  { id: 'compact',      name: 'Compact ATS Template',      category: 'Compact'      },
+  { id: 'elegant',      name: 'Elegant ATS Template',      category: 'Elegant'      },
 ];
 
 const defaultResume: ResumeData = {
