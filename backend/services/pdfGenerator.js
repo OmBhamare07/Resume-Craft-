@@ -5,11 +5,12 @@ const path = require("path");
 async function getBrowser() {
   // Try system chromium first (installed via apt on EC2)
   const executablePaths = [
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/google-chrome",
     "/usr/bin/chromium-browser",
     "/usr/bin/chromium",
-    "/usr/bin/google-chrome",
-    "/usr/bin/google-chrome-stable",
     "/snap/bin/chromium",
+    "/opt/google/chrome/google-chrome",
   ];
 
   const fs = require("fs");
