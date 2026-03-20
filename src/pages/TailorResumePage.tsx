@@ -38,23 +38,55 @@ export default function TailorResumePage() {
         setResumeText(text);
 
       } else if (file.name.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        // Extract text from DOCX using mammoth
-        const mammoth = await import('mammoth');
+        // Extract text from DOCX using JSZip (pure browser, no Node.js needed)
+        const JSZip = (await import('jszip')).default;
         const arrayBuffer = await file.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer });
-        setResumeText(result.value);
+        const zip = await JSZip.loadAsync(arrayBuffer);
+        const xmlFile = zip.file('word/document.xml');
+        if (!xmlFile) throw new Error('Invalid DOCX file');
+        const xmlText = await xmlFile.async('string');
+        // Strip XML tags and extract plain text
+        const text = xmlText
+          .replace(/<w:br[^>]*\/>/gi, '
+')
+          .replace(/<w:p[ >]/gi, '
+')
+          .replace(/<[^>]+>/g, '')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/
+\s*
+\s*
+/g, '
+
+')
+          .trim();
+        setResumeText(text);
 
       } else if (file.type === 'application/pdf') {
-        // Extract text from PDF using pdfjs-dist
-        const pdfjsLib = await import('pdfjs-dist');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+        // Extract text from PDF using PDF.js from CDN (avoids Vite bundling issues)
+        const pdfjsLib = (window as any).pdfjsLib;
+        if (!pdfjsLib) {
+          // Load PDF.js from CDN dynamically
+          await new Promise<void>((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Failed to load PDF.js'));
+            document.head.appendChild(script);
+          });
+        }
+        const pdfjs = (window as any).pdfjsLib;
+        pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
         let text = '';
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          text += content.items.map((item: any) => item.str).join(' ') + '\n';
+          const pageContent = await page.getTextContent();
+          text += pageContent.items.map((item: any) => item.str).join(' ') + '\n';
         }
         setResumeText(text);
 

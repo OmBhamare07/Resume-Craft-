@@ -18,4 +18,12 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
   },
+  optimizeDeps: {
+    exclude: ['pdfjs-dist'],
+  },
+  build: {
+    rollupOptions: {
+      external: [],
+    },
+  },
 }));
