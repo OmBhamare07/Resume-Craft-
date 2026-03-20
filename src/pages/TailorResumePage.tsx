@@ -30,11 +30,41 @@ export default function TailorResumePage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setFileName(file.name);
-    if (file.type === 'text/plain') {
-      const text = await file.text();
-      setResumeText(text);
-    } else {
-      setError('Please upload a .txt file or paste your resume text below. PDF text extraction requires the server.');
+    setError('');
+
+    try {
+      if (file.type === 'text/plain') {
+        const text = await file.text();
+        setResumeText(text);
+
+      } else if (file.name.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        // Extract text from DOCX using mammoth
+        const mammoth = await import('mammoth');
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        setResumeText(result.value);
+
+      } else if (file.type === 'application/pdf') {
+        // Extract text from PDF using pdfjs-dist
+        const pdfjsLib = await import('pdfjs-dist');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let text = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          text += content.items.map((item: any) => item.str).join(' ') + '
+';
+        }
+        setResumeText(text);
+
+      } else {
+        setError('Unsupported file type. Please upload a PDF, DOCX, or TXT file.');
+        setFileName('');
+      }
+    } catch (err) {
+      setError('Could not read file. Please paste your resume text manually.');
       setFileName('');
     }
   };
@@ -200,8 +230,8 @@ Rules:
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </span>
-                ) : 'Upload .txt resume file'}
-                <input type="file" accept=".txt" className="hidden" onChange={handleFileUpload} />
+                ) : 'Upload PDF, DOCX or TXT'}
+                <input type="file" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" className="hidden" onChange={handleFileUpload} />
               </label>
               <div className="text-center text-xs text-muted-foreground my-2">— or paste text below —</div>
             </div>
