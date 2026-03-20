@@ -17,6 +17,7 @@ import HistoryPage from "./pages/HistoryPage.tsx";
 import CoverLetterPage from "./pages/CoverLetterPage.tsx";
 import CoverLettersListPage from "./pages/CoverLettersListPage.tsx";
 import SharedResumePage from "./pages/SharedResumePage.tsx";
+import TailorResumePage from "./pages/TailorResumePage.tsx";
 import { ResumeChatbot } from "./components/ResumeChatbot.tsx";
 import { ATSChecker } from "./components/ATSChecker.tsx";
 import { useResumeStore } from "./store/resumeStore.ts";
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
             <Route path="/cover-letters" element={<ProtectedRoute><CoverLettersListPage /></ProtectedRoute>} />
             <Route path="/cover-letter" element={<ProtectedRoute><CoverLetterPage /></ProtectedRoute>} />
+            <Route path="/tailor" element={<ProtectedRoute><TailorResumePage /></ProtectedRoute>} />
             <Route path="/preview/:templateId" element={<ProtectedRoute><TemplatePreviewPage /></ProtectedRoute>} />
             <Route path="/builder/:templateId" element={<ProtectedRoute><BuilderPage /></ProtectedRoute>} />
             <Route path="/resume/:templateId" element={<ProtectedRoute><ResumePreviewPage /></ProtectedRoute>} />

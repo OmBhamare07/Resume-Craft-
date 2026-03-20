@@ -1,4 +1,4 @@
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useResumeStore, templates, ATS_FONTS } from '@/store/resumeStore';
 import { templateComponents } from '@/templates/ResumeTemplates';
 import { AppHeader } from '@/components/AppHeader';
@@ -86,6 +86,9 @@ const BuilderPage = () => {
   const selectedFont = useResumeStore(s => s.selectedFont);
   const setSelectedFont = useResumeStore(s => s.setSelectedFont);
   const { token } = useAuth();
+  const location = useLocation();
+  const tailoredState = location.state as { tailored?: boolean; jobTitle?: string; atsKeywordsAdded?: string[] } | null;
+  const [showTailoredBanner, setShowTailoredBanner] = useState(!!tailoredState?.tailored);
 
   const [resumeId, setResumeId] = useState<string | null>(resumeIdParam);
   const [resumeName, setResumeName] = useState('Untitled Resume');
@@ -289,6 +292,25 @@ const BuilderPage = () => {
             </div>
             <p className="text-xs text-muted-foreground">Changes auto-save. <span className="text-primary font-medium">Drag ⠿ to reorder sections.</span></p>
           </div>
+
+          {/* Tailored Resume Banner */}
+          {showTailoredBanner && tailoredState?.jobTitle && (
+            <div className="mb-4 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950 dark:to-indigo-950 border border-purple-200 dark:border-purple-800 p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                    ✅ Resume tailored for: {tailoredState.jobTitle}
+                  </p>
+                  {tailoredState.atsKeywordsAdded && tailoredState.atsKeywordsAdded.length > 0 && (
+                    <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                      Keywords added: {tailoredState.atsKeywordsAdded.join(', ')}
+                    </p>
+                  )}
+                </div>
+                <button onClick={() => setShowTailoredBanner(false)} className="text-purple-400 hover:text-purple-700 text-xs shrink-0">✕</button>
+              </div>
+            </div>
+          )}
 
           {/* AI Suggestions */}
           <div className="mb-4">
