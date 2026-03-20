@@ -47,7 +47,11 @@ export default function HistoryPage() {
     try {
       if (resume.shareEnabled && resume.shareToken) {
         const url = `${window.location.origin}/shared/${resume.shareToken}`;
+        try {
         await navigator.clipboard.writeText(url);
+      } catch {
+        window.prompt('Copy your share link:', url);
+      }
         setCopiedId(resume.resumeId);
         setTimeout(() => setCopiedId(null), 2000);
       } else {
@@ -55,7 +59,11 @@ export default function HistoryPage() {
           method: 'PUT', headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
+        try {
         await navigator.clipboard.writeText(`${window.location.origin}/shared/${data.shareToken}`);
+      } catch {
+        window.prompt('Copy your share link:', `${window.location.origin}/shared/${data.shareToken}`);
+      }
         setCopiedId(resume.resumeId);
         setTimeout(() => setCopiedId(null), 2000);
         setResumes(r => r.map(x => x.resumeId === resume.resumeId ? { ...x, shareToken: data.shareToken, shareEnabled: true } : x));

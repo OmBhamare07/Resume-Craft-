@@ -70,7 +70,13 @@ const ResumePreviewPage = () => {
       if (!res.ok) throw new Error('Share failed');
       const data = await res.json();
       const url = `${window.location.origin}/shared/${data.shareToken}`;
-      await navigator.clipboard.writeText(url);
+      // Clipboard API only works on HTTPS — fallback for HTTP
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        // Fallback: show the URL in a prompt so user can copy manually
+        window.prompt('Copy your share link:', url);
+      }
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 3000);
     } catch {
