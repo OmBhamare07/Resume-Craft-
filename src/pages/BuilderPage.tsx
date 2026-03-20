@@ -10,9 +10,16 @@ import { Plus, Trash2, CheckCircle2, Loader2, GripVertical, Type } from 'lucide-
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { AISuggestions } from '@/components/AISuggestions';
-import { ATS_FONTS } from '@/store/resumeStore';
+import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor,
+  useSensor, useSensors, DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove, SortableContext, sortableKeyboardCoordinates,
+  verticalListSortingStrategy, useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
-// ── Section order types ───────────────────────────────────────────────
 type SectionKey = 'personalInfo' | 'objective' | 'skills' | 'projects' | 'experience' | 'education';
 
 const DEFAULT_SECTION_ORDER: SectionKey[] = [
@@ -26,6 +33,48 @@ const SECTION_LABELS: Record<SectionKey, string> = {
   projects: 'Projects',
   experience: 'Experience',
   education: 'Education',
+};
+
+// ── Sortable Section Wrapper ──────────────────────────────────────────
+const SortableSection = ({
+  id, title, children, onAdd, addLabel,
+}: {
+  id: string; title: string; children: React.ReactNode;
+  onAdd?: () => void; addLabel?: string;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="mb-6">
+      <div className="mb-3 flex items-center justify-between group">
+        <div className="flex items-center gap-2">
+          {/* Drag handle */}
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-primary transition opacity-40 group-hover:opacity-100 p-1 rounded"
+            title="Drag to reorder"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <h2 className="text-sm font-semibold">{title}</h2>
+        </div>
+        {onAdd && (
+          <button onClick={onAdd} className="flex items-center gap-1 text-xs text-primary hover:underline">
+            <Plus className="h-3 w-3" /> {addLabel}
+          </button>
+        )}
+      </div>
+      <div className="space-y-3 pl-6">{children}</div>
+    </div>
+  );
 };
 
 const BuilderPage = () => {
@@ -46,9 +95,22 @@ const BuilderPage = () => {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstLoad = useRef(true);
 
-  // Drag state
-  const dragIndex = useRef<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  // dnd-kit sensors — supports both mouse and touch
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setSectionOrder(prev => {
+        const oldIndex = prev.indexOf(active.id as SectionKey);
+        const newIndex = prev.indexOf(over.id as SectionKey);
+        return arrayMove(prev, oldIndex, newIndex);
+      });
+    }
+  };
 
   useEffect(() => {
     if (templateId) store.setSelectedTemplate(templateId);
@@ -64,6 +126,7 @@ const BuilderPage = () => {
           setResumeName(data.name || 'Untitled Resume');
           setResumeId(data.resumeId);
           if (data.sectionOrder) setSectionOrder(data.sectionOrder);
+          if (data.jobType) setJobType(data.jobType);
         }
       })
       .catch(console.error)
@@ -80,12 +143,14 @@ const BuilderPage = () => {
     try {
       if (resumeId) {
         await fetch(`/api/resumes/${resumeId}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ templateId, resumeData: data, name, jobType }),
         });
       } else {
         const res = await fetch('/api/resumes', {
-          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ templateId, resumeData: data, name, jobType }),
         });
         const created = await res.json();
@@ -97,7 +162,7 @@ const BuilderPage = () => {
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 3000);
     }
-  }, [resumeId, token, templateId]);
+  }, [resumeId, token, templateId, jobType]);
 
   useEffect(() => {
     if (isFirstLoad.current) return;
@@ -105,35 +170,6 @@ const BuilderPage = () => {
     saveTimerRef.current = setTimeout(() => autoSave(store.resumeData, resumeName), 2000);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [store.resumeData, resumeName]);
-
-  // ── Drag handlers ──────────────────────────────────────────────────
-  const handleDragStart = (index: number) => {
-    dragIndex.current = index;
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    setDragOverIndex(index);
-  };
-
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
-    e.preventDefault();
-    if (dragIndex.current === null || dragIndex.current === dropIndex) {
-      setDragOverIndex(null);
-      return;
-    }
-    const newOrder = [...sectionOrder];
-    const [moved] = newOrder.splice(dragIndex.current, 1);
-    newOrder.splice(dropIndex, 0, moved);
-    setSectionOrder(newOrder);
-    dragIndex.current = null;
-    setDragOverIndex(null);
-  };
-
-  const handleDragEnd = () => {
-    dragIndex.current = null;
-    setDragOverIndex(null);
-  };
 
   const template = templates.find(t => t.id === templateId);
   const TemplateComponent = templateId ? templateComponents[templateId] : null;
@@ -144,7 +180,6 @@ const BuilderPage = () => {
 
   const { resumeData: data } = store;
 
-  // ── Section content renderer ───────────────────────────────────────
   const renderSectionContent = (key: SectionKey) => {
     switch (key) {
       case 'personalInfo':
@@ -252,7 +287,7 @@ const BuilderPage = () => {
                 {saveStatus === 'error' && <span className="text-red-500">Save failed</span>}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">Changes auto-save. <span className="text-primary font-medium">Drag ⠿ to reorder.</span></p>
+            <p className="text-xs text-muted-foreground">Changes auto-save. <span className="text-primary font-medium">Drag ⠿ to reorder sections.</span></p>
           </div>
 
           {/* AI Suggestions */}
@@ -265,27 +300,6 @@ const BuilderPage = () => {
             <Label className="text-xs text-muted-foreground">Resume Name</Label>
             <Input className="mt-1" value={resumeName} onChange={e => setResumeName(e.target.value)} placeholder="e.g. Software Engineer Resume" />
           </div>
-
-          {/* ATS Font Selector */}
-          <div className="mb-5 rounded-xl border border-border bg-muted/30 p-3">
-            <Label className="text-xs font-semibold text-foreground mb-2 block">Resume Font</Label>
-            <select
-              value={store.selectedFont}
-              onChange={e => store.setSelectedFont(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              style={{ fontFamily: store.selectedFont }}
-            >
-              {ATS_FONTS.map(f => (
-                <option key={f.name} value={f.value} style={{ fontFamily: f.value }}>
-                  {f.label} ({f.atsScore} ATS)
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-muted-foreground mt-1.5">
-              All fonts listed are ATS-compatible. Excellent = best for automated scanners.
-            </p>
-          </div>
-
 
           {/* Job Type */}
           <div className="mb-4">
@@ -318,42 +332,25 @@ const BuilderPage = () => {
             </div>
           </div>
 
-          {/* Draggable sections */}
-          <div className="space-y-0">
-            {sectionOrder.map((key, index) => {
-              const { onAdd, addLabel } = getAddHandler(key);
-              const isDragOver = dragOverIndex === index;
-              return (
-                <div
-                  key={key}
-                  draggable
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={e => handleDragOver(e, index)}
-                  onDrop={e => handleDrop(e, index)}
-                  onDragEnd={handleDragEnd}
-                  className={`mb-6 rounded-lg transition-all ${isDragOver ? 'ring-2 ring-primary ring-offset-1 bg-primary/5' : ''}`}
-                >
-                  <div className="mb-3 flex items-center justify-between group">
-                    <div className="flex items-center gap-2">
-                      {/* Drag handle */}
-                      <div className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-primary transition opacity-40 group-hover:opacity-100">
-                        <GripVertical className="h-4 w-4" />
-                      </div>
-                      <h2 className="text-sm font-semibold">{SECTION_LABELS[key]}</h2>
-                    </div>
-                    {onAdd && (
-                      <button onClick={onAdd} className="flex items-center gap-1 text-xs text-primary hover:underline">
-                        <Plus className="h-3 w-3" /> {addLabel}
-                      </button>
-                    )}
-                  </div>
-                  <div className="space-y-3">
+          {/* Draggable sections using dnd-kit */}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={sectionOrder} strategy={verticalListSortingStrategy}>
+              {sectionOrder.map(key => {
+                const { onAdd, addLabel } = getAddHandler(key);
+                return (
+                  <SortableSection
+                    key={key}
+                    id={key}
+                    title={SECTION_LABELS[key]}
+                    onAdd={onAdd}
+                    addLabel={addLabel}
+                  >
                     {renderSectionContent(key)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  </SortableSection>
+                );
+              })}
+            </SortableContext>
+          </DndContext>
 
           <Button className="mt-2 w-full" onClick={() => navigate(`/resume/${templateId}${resumeId ? `?resumeId=${resumeId}` : ''}`)}>
             Preview & Download
@@ -362,8 +359,8 @@ const BuilderPage = () => {
 
         <main className="hidden overflow-y-auto bg-muted p-8 lg:flex lg:justify-center">
           <div
-            className="aspect-[1/1.414] w-full max-w-[800px] origin-top scale-[0.85] bg-card shadow-elevated ring-1 ring-border"
-            style={{ fontFamily: store.selectedFont }}
+            className="w-full max-w-[800px] bg-card shadow-elevated ring-1 ring-border"
+            style={{ fontFamily: selectedFont, minHeight: '1130px' }}
           >
             <TemplateComponent data={data} />
           </div>
