@@ -123,3 +123,25 @@ router.put("/:resumeId/scores", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+// POST /api/resumes/generate-pdf
+router.post("/generate-pdf", async (req, res) => {
+  try {
+    const { templateId, resumeData, fontFamily } = req.body;
+    if (!templateId || !resumeData) {
+      return res.status(400).json({ error: "templateId and resumeData required" });
+    }
+    const { generatePDF } = require("../services/pdfGenerator");
+    const pdfBuffer = await generatePDF(templateId, resumeData, fontFamily || "Arial, sans-serif");
+    const name = resumeData?.personalInfo?.fullName || "Resume";
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${name.replace(/\s+/g, "_")}_Resume.pdf"`,
+      "Content-Length": pdfBuffer.length,
+    });
+    res.end(pdfBuffer);
+  } catch (err) {
+    console.error("PDF generation error:", err);
+    res.status(500).json({ error: err.message || "PDF generation failed" });
+  }
+});

@@ -4,7 +4,7 @@ import { templateComponents } from '@/templates/ResumeTemplates';
 import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Download, Pencil, LayoutTemplate, Loader2, Share2, Check } from 'lucide-react';
-import { useRef, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
 const ResumePreviewPage = () => {
@@ -16,12 +16,10 @@ const ResumePreviewPage = () => {
   const selectedFont = useResumeStore((s) => s.selectedFont);
   const store = useResumeStore();
   const { token } = useAuth();
-  const resumeRef = useRef<HTMLDivElement>(null);
-  const [resumeId] = useState<string | null>(resumeIdParam);
+  const [resumeId, setResumeId] = useState<string | null>(resumeIdParam);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
-  const [shareToken, setShareToken] = useState('');
 
   const template = templates.find((t) => t.id === templateId);
   const TemplateComponent = templateId ? templateComponents[templateId] : null;
@@ -31,7 +29,7 @@ const ResumePreviewPage = () => {
     if (!resumeIdParam || !token) return;
     fetch(`/api/resumes/${resumeIdParam}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) store.setResumeData(data.resumeData); })
+      .then(data => { if (data) { store.setResumeData(data.resumeData); setResumeId(data.resumeId); } })
       .catch(console.error);
   }, [resumeIdParam, token]);
 
@@ -39,64 +37,85 @@ const ResumePreviewPage = () => {
     return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Template not found.</div>;
   }
 
-
+  // ── Share handler ──────────────────────────────────────────────────
   const handleShare = async () => {
-    if (!resumeId) { alert('Save your resume first by going back to the builder.'); return; }
-    setShareLoading(true);
+    // If no resumeId, auto-save first then share
+    let currentResumeId = resumeId;
+
+    if (!currentResumeId) {
+      setShareLoading(true);
+      try {
+        const res = await fetch('/api/resumes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ templateId, resumeData, name: resumeData.personalInfo.fullName || 'My Resume' }),
+        });
+        const created = await res.json();
+        currentResumeId = created.resumeId;
+        setResumeId(created.resumeId);
+      } catch {
+        alert('Could not save resume. Please go to the builder first.');
+        setShareLoading(false);
+        return;
+      }
+    } else {
+      setShareLoading(true);
+    }
+
     try {
-      const res = await fetch(`/api/resumes/${resumeId}/share`, {
-        method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+      const res = await fetch(`/api/resumes/${currentResumeId}/share`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) throw new Error('Share failed');
       const data = await res.json();
       const url = `${window.location.origin}/shared/${data.shareToken}`;
       await navigator.clipboard.writeText(url);
-      setShareToken(data.shareToken);
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 3000);
-    } catch { alert('Share failed. Please try again.'); }
-    finally { setShareLoading(false); }
+    } catch {
+      alert('Share failed. Please try again.');
+    } finally {
+      setShareLoading(false);
+    }
   };
 
-  // ── Protected PDF download (rendered as image — uncopiable) ────────
+  // ── Backend Puppeteer PDF download (ATS-readable text) ────────────
   const handleDownloadPDF = async () => {
-    if (!resumeRef.current) return;
     setPdfLoading(true);
     try {
-      const html2canvas = (await import('html2canvas')).default;
-      const jsPDF = (await import('jspdf')).jsPDF;
-
-      const canvas = await html2canvas(resumeRef.current, {
-        scale: 3,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
+      const res = await fetch('/api/resumes/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          templateId,
+          resumeData,
+          fontFamily: selectedFont,
+        }),
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'PDF generation failed');
+      }
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-
-      // Set document properties (no password needed — image-based = uncopiable)
-      pdf.setProperties({
-        title: `${resumeData.personalInfo.fullName || 'Resume'} - Resume`,
-        creator: 'ResumeCraft',
-      });
-
-      const fileName = `${(resumeData.personalInfo.fullName || 'Resume').replace(/\s+/g, '_')}_Resume.pdf`;
-      pdf.save(fileName);
-    } catch (err) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(resumeData.personalInfo.fullName || 'Resume').replace(/\s+/g, '_')}_Resume.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
       console.error('PDF error:', err);
-      alert('PDF generation failed. Please try again.');
+      alert(err.message || 'PDF generation failed. Please try again.');
     } finally {
       setPdfLoading(false);
     }
   };
-
 
   return (
     <div className="min-h-screen bg-surface">
@@ -127,19 +146,18 @@ const ResumePreviewPage = () => {
           </div>
         </div>
 
-        {/* PDF lock notice */}
-        <div className="no-print mb-4 rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 flex items-center gap-2 max-w-[800px] mx-auto">
-          <span className="text-amber-600 text-lg">🔒</span>
-          <p className="text-xs text-amber-700">
-            <span className="font-semibold">PDF is copy-protected.</span> Resume is rendered as an image — text cannot be selected or copied from the downloaded PDF.
+        <div className="no-print mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-2.5 flex items-center gap-2 max-w-[800px] mx-auto">
+          <span className="text-green-600 text-lg">✅</span>
+          <p className="text-xs text-green-700">
+            <span className="font-semibold">ATS-readable PDF.</span> Downloaded resume contains real selectable text — compatible with all ATS systems and resume checkers.
           </p>
         </div>
 
         <div className="mx-auto max-w-[800px]">
+          {/* ── Fix 2: Remove aspect-ratio constraint so content can grow naturally ── */}
           <div
-            ref={resumeRef}
-            className="print-area aspect-[1/1.414] w-full bg-white shadow-elevated ring-1 ring-border"
-            style={{ fontFamily: selectedFont }}
+            className="w-full bg-white shadow-elevated ring-1 ring-border"
+            style={{ fontFamily: selectedFont, minHeight: '1130px' }}
           >
             <TemplateComponent data={resumeData} />
           </div>

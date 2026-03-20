@@ -14,6 +14,15 @@ echo "  ResumeCraft Full Setup"
 echo "  Project: $PROJECT_DIR"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+
+# Install Chromium for PDF generation
+echo ""
+echo "▶ Installing Chromium for PDF generation..."
+sudo yum install -y chromium 2>/dev/null || \
+sudo apt-get install -y chromium-browser 2>/dev/null || \
+sudo apt-get install -y chromium 2>/dev/null || \
+echo "  ⚠️  Chromium install failed — try manually: sudo apt-get install -y chromium-browser"
+
 # 1. Create DynamoDB tables
 echo ""
 echo "▶ Creating DynamoDB tables..."
