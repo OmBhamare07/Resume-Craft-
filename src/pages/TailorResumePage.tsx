@@ -45,23 +45,15 @@ export default function TailorResumePage() {
         const xmlFile = zip.file('word/document.xml');
         if (!xmlFile) throw new Error('Invalid DOCX file');
         const xmlText = await xmlFile.async('string');
-        // Strip XML tags and extract plain text
         const text = xmlText
-          .replace(/<w:br[^>]*\/>/gi, '
-')
-          .replace(/<w:p[ >]/gi, '
-')
+          .replace(/<w:br[^>]*\/>/gi, '\n')
+          .replace(/<w:p[ >]/gi, '\n')
           .replace(/<[^>]+>/g, '')
           .replace(/&amp;/g, '&')
           .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>')
           .replace(/&quot;/g, '"')
-          .replace(/
-\s*
-\s*
-/g, '
-
-')
+          .replace(/\n\s*\n\s*\n/g, '\n\n')
           .trim();
         setResumeText(text);
 
