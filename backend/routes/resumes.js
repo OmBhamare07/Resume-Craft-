@@ -127,12 +127,12 @@ router.put("/:resumeId/scores", async (req, res) => {
 // POST /api/resumes/generate-pdf
 router.post("/generate-pdf", async (req, res) => {
   try {
-    const { templateId, resumeData, fontFamily } = req.body;
+    const { templateId, resumeData, fontFamily, sectionOrder } = req.body;
     if (!templateId || !resumeData) {
       return res.status(400).json({ error: "templateId and resumeData required" });
     }
     const { generatePDF } = require("../services/pdfGenerator");
-    const pdfBuffer = await generatePDF(templateId, resumeData, fontFamily || "Arial, sans-serif");
+    const pdfBuffer = await generatePDF(templateId, resumeData, fontFamily || "Arial, sans-serif", sectionOrder);
     const name = resumeData?.personalInfo?.fullName || "Resume";
     res.set({
       "Content-Type": "application/pdf",

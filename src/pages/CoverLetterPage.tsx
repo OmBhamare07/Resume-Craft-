@@ -116,14 +116,18 @@ Instructions:
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: letterName || `${jobTitle} at ${company}`, content, jobTitle, company }),
+        body: JSON.stringify({ name: letterName || `${jobTitle} at ${company}` || 'Cover Letter', content, jobTitle, company }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Save failed');
+      }
       const data = await res.json();
       if (!letterId && data.letterId) setLetterId(data.letterId);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-    } catch {
-      alert('Save failed');
+    } catch (err: any) {
+      alert(err.message || 'Save failed. Please try again.');
     } finally {
       setSaving(false);
     }

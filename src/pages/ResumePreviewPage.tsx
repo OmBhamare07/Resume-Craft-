@@ -101,6 +101,7 @@ const ResumePreviewPage = () => {
           templateId,
           resumeData,
           fontFamily: selectedFont,
+          sectionOrder: sectionOrder.length > 0 ? sectionOrder : undefined,
         }),
       });
 

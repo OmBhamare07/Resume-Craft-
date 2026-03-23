@@ -2,9 +2,9 @@ import { useState } from 'react';
 import {
   ShieldCheck, X, ChevronDown, ChevronUp, AlertCircle,
   CheckCircle2, Info, Zap, TrendingUp, Briefcase,
-  FileText, Loader2, BookOpen, Cpu, AlignLeft
+  FileText, Loader2, BookOpen, Cpu, AlignLeft, Plus, Wand2
 } from 'lucide-react';
-import { ResumeData } from '@/store/resumeStore';
+import { ResumeData, useResumeStore } from '@/store/resumeStore';
 
 interface ATSCheckerProps { data: ResumeData; }
 
@@ -62,6 +62,33 @@ const JOB_ROLES: Record<string, { title: string; category: string }> = {
 const JOB_CATEGORIES = [...new Set(Object.values(JOB_ROLES).map(j => j.category))];
 
 export const ATSChecker = ({ data }: ATSCheckerProps) => {
+  const store = useResumeStore();
+
+  const applyKeyword = (keyword: string) => {
+    // Add keyword to skills if not already there
+    const skillGroups = [...data.skillGroups];
+    if (skillGroups.length === 0) {
+      store.addSkillGroup();
+      setTimeout(() => {
+        const updated = useResumeStore.getState().resumeData.skillGroups;
+        if (updated.length > 0) {
+          store.updateSkillGroup(updated[0].id, { category: 'Additional Skills', skills: keyword });
+        }
+      }, 50);
+    } else {
+      const last = skillGroups[skillGroups.length - 1];
+      const existing = last.skills ? last.skills + ', ' + keyword : keyword;
+      store.updateSkillGroup(last.id, { skills: existing });
+    }
+  };
+
+  const applyRecommendation = (rec: string) => {
+    // Add recommendation as a note to the objective/summary
+    const current = data.objective || '';
+    if (!current.includes(rec.substring(0, 20))) {
+      store.setObjective(current ? current + ' ' + rec : rec);
+    }
+  };
   const [isOpen, setIsOpen] = useState(false);
   const [result, setResult] = useState<ATSResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -379,7 +406,12 @@ Return ONLY a valid JSON object (no markdown, no explanation):
                     <ul className="space-y-1.5">
                       {result.topRecommendations.map((r, i) => (
                         <li key={i} className="flex items-start gap-2 text-xs text-indigo-700">
-                          <span className="font-bold shrink-0">{i + 1}.</span>{r}
+                          <span className="font-bold shrink-0">{i + 1}.</span>
+                          <span className="flex-1">{r}</span>
+                          <button onClick={() => applyRecommendation(r)}
+                            className="shrink-0 flex items-center gap-1 text-[10px] bg-indigo-600 text-white rounded-full px-2 py-0.5 hover:bg-indigo-700 transition font-semibold whitespace-nowrap">
+                            <Wand2 className="h-2.5 w-2.5" /> Apply
+                          </button>
                         </li>
                       ))}
                     </ul>

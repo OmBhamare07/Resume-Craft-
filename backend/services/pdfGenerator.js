@@ -39,7 +39,7 @@ async function getBrowser() {
 }
 
 // Generate HTML for a given template and resume data
-function generateHTML(templateId, resumeData, fontFamily = "Arial, sans-serif") {
+function generateHTML(templateId, resumeData, fontFamily = "Arial, sans-serif", sectionOrder = null) {
   const d = resumeData;
   const name = d.personalInfo?.fullName || "Your Name";
   const email = d.personalInfo?.email || "";
@@ -57,10 +57,22 @@ function generateHTML(templateId, resumeData, fontFamily = "Arial, sans-serif") 
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
+  const DEFAULT_ORDER = ["personalInfo", "objective", "experience", "skills", "projects", "education"];
+  const order = (sectionOrder && sectionOrder.length > 0) ? sectionOrder : DEFAULT_ORDER;
+  const orderedSections = order.filter(k => k !== "personalInfo");
+
   let bodyHTML = "";
 
   if (templateId === "modern") {
-    bodyHTML = `
+    const renderModernSec = (key) => {
+      if (key === "objective" && objective) return \`<div style="margin-bottom:16px;"><div style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#2563eb;margin-bottom:8px;border-bottom:1px solid #93c5fd;">PROFESSIONAL SUMMARY</div><p style="margin:0;">\${esc(objective)}</p></div>\`;
+      if (key === "experience" && d.experience?.length) return \`<div style="margin-bottom:16px;"><div style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#2563eb;margin-bottom:8px;border-bottom:1px solid #93c5fd;">WORK EXPERIENCE</div>\${d.experience.map(e => \`<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-weight:600;"><span>\${esc(e.company)}</span><span style="font-size:11px;color:#666;font-weight:400;">\${esc(e.timePeriod)}</span></div>\${e.type ? \`<div style="font-size:12px;color:#2563eb;font-style:italic;">\${esc(e.type)}</div>\` : ""}<p style="margin:4px 0 0;color:#333;">\${esc(e.responsibilities)}</p></div>\`).join("")}</div>\`;
+      if (key === "skills" && d.skillGroups?.length) return \`<div style="margin-bottom:16px;"><div style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#2563eb;margin-bottom:8px;border-bottom:1px solid #93c5fd;">SKILLS</div>\${d.skillGroups.map(g => \`<div style="margin-bottom:4px;"><span style="font-weight:600;">\${esc(g.category)}: </span><span>\${esc(g.skills)}</span></div>\`).join("")}</div>\`;
+      if (key === "projects" && d.projects?.length) return \`<div style="margin-bottom:16px;"><div style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#2563eb;margin-bottom:8px;border-bottom:1px solid #93c5fd;">PROJECTS</div>\${d.projects.map(p => \`<div style="margin-bottom:10px;"><div style="font-weight:600;">\${esc(p.name)}</div><p style="margin:3px 0;">\${esc(p.description)}</p>\${p.technologies ? \`<div style="font-size:11px;color:#2563eb;">Tech: \${esc(p.technologies)}</div>\` : ""}</div>\`).join("")}</div>\`;
+      if (key === "education" && d.education?.length) return \`<div style="margin-bottom:16px;"><div style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#2563eb;margin-bottom:8px;border-bottom:1px solid #93c5fd;">EDUCATION</div>\${d.education.map(e => \`<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;font-weight:600;"><span>\${esc(e.degree)}</span><span style="font-size:11px;color:#666;font-weight:400;">\${esc(e.period)}</span></div><div>\${esc(e.institute)}</div>\${e.marks ? \`<div style="font-size:11px;color:#666;">\${esc(e.marks)}</div>\` : ""}</div>\`).join("")}</div>\`;
+      return "";
+    };
+    bodyHTML = \`
     <div style="font-family:${fontFamily};font-size:13px;color:#1a1a1a;padding:36px 40px;line-height:1.5;background:#fff;">
       <div style="border-left:4px solid #2563eb;padding-left:14px;margin-bottom:20px;">
         <h1 style="font-size:22px;font-weight:700;margin:0;color:#1e3a8a;">${esc(name)}</h1>
@@ -217,8 +229,8 @@ function generateHTML(templateId, resumeData, fontFamily = "Arial, sans-serif") 
 </html>`;
 }
 
-async function generatePDF(templateId, resumeData, fontFamily) {
-  const html = generateHTML(templateId, resumeData, fontFamily);
+async function generatePDF(templateId, resumeData, fontFamily, sectionOrder) {
+  const html = generateHTML(templateId, resumeData, fontFamily, sectionOrder);
   const browser = await getBrowser();
   try {
     const page = await browser.newPage();

@@ -1,7 +1,7 @@
 import { templates } from '@/store/resumeStore';
 import { TemplateCard } from '@/components/TemplateCard';
 import { AppHeader } from '@/components/AppHeader';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
@@ -21,14 +21,17 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Small AI Job Match button — top right */}
-          <button
-            onClick={() => navigate('/tailor')}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition shadow-sm shrink-0"
-          >
-            <Sparkles className="h-4 w-4" />
-            AI Job Match
-          </button>
+          {/* Action buttons top right */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={() => navigate('/upload-resume')}
+              className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold hover:bg-muted transition shadow-sm">
+              <Upload className="h-4 w-4" /> Import Resume
+            </button>
+            <button onClick={() => navigate('/tailor')}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition shadow-sm">
+              <Sparkles className="h-4 w-4" /> AI Job Match
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
