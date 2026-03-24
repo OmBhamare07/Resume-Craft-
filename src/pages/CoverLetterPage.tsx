@@ -24,6 +24,7 @@ export default function CoverLetterPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [downloading, setDownloading] = useState(false);
   const [letterId, setLetterId] = useState<string | null>(null);
 
@@ -108,26 +109,27 @@ Instructions:
   };
 
   const save = async () => {
-    if (!content) return;
+    if (!content || !token) return;
     setSaving(true);
+    setSaveError('');
     try {
+      const finalName = letterName.trim() || (jobTitle && company ? `${jobTitle} at ${company}` : 'Cover Letter');
       const url = letterId ? `/api/cover-letters/${letterId}` : '/api/cover-letters';
       const method = letterId ? 'PUT' : 'POST';
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: letterName || `${jobTitle} at ${company}` || 'Cover Letter', content, jobTitle, company }),
+        body: JSON.stringify({ name: finalName, content, jobTitle, company }),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Save failed');
-      }
-      const data = await res.json();
+      const responseText = await res.text();
+      let data: any = {};
+      try { data = JSON.parse(responseText); } catch {}
+      if (!res.ok) throw new Error(data.error || `Server error (${res.status})`);
       if (!letterId && data.letterId) setLetterId(data.letterId);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err: any) {
-      alert(err.message || 'Save failed. Please try again.');
+      setSaveError(err.message || 'Save failed. Check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -245,6 +247,9 @@ Instructions:
                     placeholder="Cover letter name..." />
                 </div>
 
+                {saveError && (
+                  <div className="rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 px-3 py-2 text-xs text-red-600">{saveError}</div>
+                )}
                 <div className="flex gap-2">
                   <button onClick={save} disabled={saving}
                     className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-border py-2 text-sm font-medium hover:bg-muted transition disabled:opacity-50">

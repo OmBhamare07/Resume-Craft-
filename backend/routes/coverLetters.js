@@ -25,8 +25,8 @@ router.get("/", async (req, res) => {
     const items = (result.Items || []).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
     res.json(items);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
+    console.error("Cover letters GET error:", err);
+    res.status(500).json({ error: err.message || "Server error" });
   }
 });
 
@@ -58,11 +58,11 @@ router.get("/:letterId", async (req, res) => {
 router.put("/:letterId", async (req, res) => {
   try {
     const db = getDb();
-    const { name, content, jobTitle, company } = req.body;
+    const { name, content, jobTitle, company, createdAt } = req.body;
     const now = new Date().toISOString();
-    const item = { userId: req.user.userId, letterId: req.params.letterId, name, content, jobTitle, company, updatedAt: now };
+    const item = { userId: req.user.userId, letterId: req.params.letterId, name: name || "Cover Letter", content, jobTitle, company, createdAt: createdAt || now, updatedAt: now };
     await db.send(new PutCommand({ TableName: TABLE, Item: item }));
-    res.json({ success: true });
+    res.json({ success: true, letterId: req.params.letterId });
   } catch (err) {
     res.status(500).json({ error: "Server error" });
   }
