@@ -95,58 +95,159 @@ Rules:
     }
   };
 
-  // Apply a suggestion to the specific section using AI
+  // Apply a suggestion — AI rewrites the specific section properly replacing old content
   const applySuggestion = async (suggestion: Suggestion, idx: number) => {
     setApplyingIdx(idx);
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     const section = suggestion.section.toLowerCase();
 
     try {
-      // Build current section data
-      let currentData = '';
-      if (section.includes('summary') || section.includes('objective')) {
-        currentData = data.objective;
-      } else if (section.includes('experience')) {
-        currentData = data.experience.map(e => `${e.company} (${e.timePeriod}): ${e.responsibilities}`).join('\n');
-      } else if (section.includes('skill')) {
-        currentData = data.skillGroups.map(g => `${g.category}: ${g.skills}`).join('\n');
-      } else if (section.includes('project')) {
-        currentData = data.projects.map(p => `${p.name}: ${p.description}`).join('\n');
-      } else if (section.includes('education')) {
-        currentData = data.education.map(e => `${e.degree} from ${e.institute}`).join('\n');
-      } else if (section.includes('contact')) {
-        // Contact info - just show the suggestion as notification
+      // Contact info — mark applied, no AI needed
+      if (section.includes('contact')) {
         setAppliedIdxs(prev => new Set(prev).add(idx));
         setApplyingIdx(null);
         return;
       }
 
-      const prompt = `You are a resume editor. Apply this improvement suggestion to the resume section.
+      // Build a targeted prompt per section type
+      let prompt = '';
 
-SUGGESTION: ${suggestion.text}
+      if (section.includes('summary') || section.includes('objective')) {
+        prompt = `You are an expert resume writer. Rewrite this professional summary to implement the suggestion below.
 
-CURRENT ${suggestion.section.toUpperCase()} CONTENT:
-${currentData}
+SUGGESTION TO IMPLEMENT: ${suggestion.text}
 
-FULL RESUME CONTEXT:
-Name: ${data.personalInfo.fullName}
-Experience: ${data.experience.map(e => `${e.type} at ${e.company}`).join(', ')}
-Skills: ${data.skillGroups.map(g => g.skills).join(', ')}
+CURRENT SUMMARY:
+${data.objective || '(empty)'}
 
-Apply the suggestion and return ONLY valid JSON (no markdown) with the improved content:
-${section.includes('summary') || section.includes('objective') ? `{ "objective": "<improved summary text>" }` :
-  section.includes('experience') ? `{ "experience": [{ "id": "<same id>", "improvements": "<improved responsibilities text>" }] }` :
-  section.includes('skill') ? `{ "skillGroups": [{ "id": "<same id>", "skills": "<improved skills>" }] }` :
-  section.includes('project') ? `{ "projects": [{ "id": "<same id>", "description": "<improved description>" }] }` :
-  section.includes('education') ? `{ "education": [{ "id": "<same id>", "degree": "<improved>" }] }` :
-  `{ "objective": "<improved>" }`
+PERSON'S BACKGROUND:
+- Name: ${data.personalInfo.fullName}
+- Experience: ${data.experience.map(e => `${e.type} at ${e.company} (${e.timePeriod})`).join(', ')}
+- Skills: ${data.skillGroups.map(g => g.skills).join(', ')}
+
+Return ONLY this JSON (no markdown, no explanation):
+{ "objective": "<completely rewritten summary that implements the suggestion, 2-3 sentences, ATS-optimized, professional>" }
+
+Rules:
+- REPLACE the old summary entirely with an improved version
+- Implement the suggestion directly into the new text
+- Use strong action verbs and quantifiable achievements
+- Keep it 2-3 sentences maximum`;
+
+      } else if (section.includes('experience')) {
+        // Find most relevant experience entry
+        const expContext = data.experience.map(e =>
+          `ID: ${e.id}
+Company: ${e.company} (${e.timePeriod})
+Type: ${e.type}
+Current responsibilities: ${e.responsibilities}`
+        ).join('
+
+');
+
+        prompt = `You are an expert resume writer. Rewrite the responsibilities in the experience section to implement the suggestion below.
+
+SUGGESTION TO IMPLEMENT: ${suggestion.text}
+
+CURRENT EXPERIENCE ENTRIES:
+${expContext}
+
+Return ONLY this JSON (no markdown, no explanation):
+{
+  "experience": [
+    ${data.experience.map(e => `{ "id": "${e.id}", "responsibilities": "<rewritten responsibilities for ${e.company} that implements the suggestion — use strong action verbs, add metrics where possible, keep it factual>" }`).join(',
+    ')}
+  ]
 }
 
 Rules:
-- Only improve the specific content, keep everything else the same
-- Use the EXACT same IDs from the current data
-- Make the improvement specific and impactful
-- Keep it professional and ATS-friendly`;
+- Rewrite responsibilities for each entry to implement the suggestion
+- Use strong action verbs: Led, Built, Developed, Increased, Reduced, Managed
+- Add metrics where you reasonably can based on existing content
+- Do NOT change company names, IDs, or time periods
+- Keep each entry 1-3 sentences`;
+
+      } else if (section.includes('skill')) {
+        prompt = `You are an expert resume writer. Improve the skills section to implement this suggestion.
+
+SUGGESTION TO IMPLEMENT: ${suggestion.text}
+
+CURRENT SKILLS:
+${data.skillGroups.map(g => `ID: ${g.id} | Category: ${g.category} | Skills: ${g.skills}`).join('
+')}
+
+Return ONLY this JSON (no markdown, no explanation):
+{
+  "skillGroups": [
+    ${data.skillGroups.map(g => `{ "id": "${g.id}", "category": "${g.category}", "skills": "<improved, reordered, or expanded skills list for this category>" }`).join(',
+    ')}
+  ]
+}
+
+Rules:
+- Keep the same IDs and categories
+- Reorder skills to put most ATS-relevant ones first
+- Add missing relevant skills if the suggestion mentions them
+- Keep skills comma-separated`;
+
+      } else if (section.includes('project')) {
+        const projContext = data.projects.map(p =>
+          `ID: ${p.id}
+Name: ${p.name}
+Current description: ${p.description}
+Tech: ${p.technologies}`
+        ).join('
+
+');
+
+        prompt = `You are an expert resume writer. Rewrite project descriptions to implement the suggestion.
+
+SUGGESTION TO IMPLEMENT: ${suggestion.text}
+
+CURRENT PROJECTS:
+${projContext}
+
+Return ONLY this JSON (no markdown, no explanation):
+{
+  "projects": [
+    ${data.projects.map(p => `{ "id": "${p.id}", "description": "<rewritten description for ${p.name} that implements the suggestion — highlight impact, metrics, and ATS keywords>" }`).join(',
+    ')}
+  ]
+}
+
+Rules:
+- Rewrite descriptions to be more impactful
+- Highlight technical achievements and real-world impact
+- Keep descriptions concise (1-2 sentences)
+- Do NOT change project names, IDs, or technologies`;
+
+      } else if (section.includes('education')) {
+        prompt = `You are an expert resume writer. The suggestion is about the education section.
+
+SUGGESTION TO IMPLEMENT: ${suggestion.text}
+
+CURRENT EDUCATION:
+${data.education.map(e => `ID: ${e.id} | Degree: ${e.degree} | Institute: ${e.institute} | Period: ${e.period} | Marks: ${e.marks}`).join('
+')}
+
+Return ONLY this JSON (no markdown, no explanation):
+{
+  "education": [
+    ${data.education.map(e => `{ "id": "${e.id}", "degree": "${e.degree}", "institute": "${e.institute}", "period": "${e.period}", "marks": "<improved marks/gpa display if needed, or keep same: ${e.marks}>" }`).join(',
+    ')}
+  ]
+}
+
+Rules:
+- Only modify what the suggestion actually asks to improve
+- Keep all IDs, degree names, and institutes exactly the same`;
+
+      } else {
+        // Fallback: apply to summary
+        prompt = `Rewrite this resume summary to implement this suggestion: ${suggestion.text}
+Current: ${data.objective}
+Return ONLY JSON: { "objective": "<improved summary>" }`;
+      }
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
@@ -163,32 +264,56 @@ Rules:
       const text = raw?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
       const improved = JSON.parse(text.replace(/```json|```/g, '').trim());
 
-      // Apply changes to store
-      if (improved.objective) {
+      // Apply changes — REPLACE existing content, never append
+      if (improved.objective !== undefined) {
         store.setObjective(improved.objective);
       }
-      if (improved.experience) {
+
+      if (improved.experience?.length) {
         improved.experience.forEach((e: any) => {
           const match = data.experience.find(x => x.id === e.id);
-          if (match && e.improvements) store.updateExperience(match.id, { responsibilities: e.improvements });
+          if (match && e.responsibilities) {
+            store.updateExperience(match.id, { responsibilities: e.responsibilities });
+          }
         });
       }
-      if (improved.skillGroups) {
+
+      if (improved.skillGroups?.length) {
         improved.skillGroups.forEach((g: any) => {
           const match = data.skillGroups.find(x => x.id === g.id);
-          if (match && g.skills) store.updateSkillGroup(match.id, { skills: g.skills });
+          if (match) {
+            store.updateSkillGroup(match.id, {
+              ...(g.skills ? { skills: g.skills } : {}),
+              ...(g.category ? { category: g.category } : {}),
+            });
+          }
         });
       }
-      if (improved.projects) {
+
+      if (improved.projects?.length) {
         improved.projects.forEach((p: any) => {
           const match = data.projects.find(x => x.id === p.id);
-          if (match && p.description) store.updateProject(match.id, { description: p.description });
+          if (match && p.description) {
+            store.updateProject(match.id, { description: p.description });
+          }
+        });
+      }
+
+      if (improved.education?.length) {
+        improved.education.forEach((e: any) => {
+          const match = data.education.find(x => x.id === e.id);
+          if (match) {
+            store.updateEducation(match.id, {
+              ...(e.marks ? { marks: e.marks } : {}),
+              ...(e.degree ? { degree: e.degree } : {}),
+            });
+          }
         });
       }
 
       setAppliedIdxs(prev => new Set(prev).add(idx));
     } catch {
-      // Silently fail — suggestion wasn't applied
+      // Failed silently — user can retry
     } finally {
       setApplyingIdx(null);
     }
