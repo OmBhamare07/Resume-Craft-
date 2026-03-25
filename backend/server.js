@@ -51,7 +51,7 @@ app.get("/api/jobs/search", async (req, res) => {
     const encodedKeywords = encodeURIComponent(keywords || "software engineer");
     const encodedLocation = encodeURIComponent(location || "India");
 
-    const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/${page}?app_id=${appId}&app_key=${appKey}&results_per_page=10&what=${encodedKeywords}&where=${encodedLocation}&content-type=application/json`;
+    const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/${page}?app_id=${appId}&app_key=${appKey}&results_per_page=15&what=${encodedKeywords}&where=${encodedLocation}&max_days_old=7&sort_by=date&content-type=application/json`;
 
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Adzuna error: ${response.status}`);
