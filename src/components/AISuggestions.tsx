@@ -1,8 +1,11 @@
-// Updated code in AISuggestions.tsx
+import React from "react";
 
-// Example of fixing .join usage
-const suggestions = ["Suggestion 1", "Suggestion 2"].join('\n\n');
-
-// Other code updates...
-// Additional context with single line joins
-const moreSuggestions = ["Suggestion A", "Suggestion B"].join('\n');
+export const AISuggestions = ({ data }: { data: any }) => {
+  // TODO: Implement your suggestion display logic here
+  return (
+    <div>
+      <h3>AI Suggestions</h3>
+      <p>No suggestions yet.</p>
+    </div>
+  );
+};
