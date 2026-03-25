@@ -1,7 +1,7 @@
 import { templates } from '@/store/resumeStore';
 import { TemplateCard } from '@/components/TemplateCard';
 import { AppHeader } from '@/components/AppHeader';
-import { Sparkles, Upload } from 'lucide-react';
+import { Sparkles, Upload, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
@@ -30,6 +30,10 @@ const Index = () => {
             <button onClick={() => navigate('/tailor')}
               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition shadow-sm">
               <Sparkles className="h-4 w-4" /> AI Job Match
+            </button>
+            <button onClick={() => navigate('/job-match')}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition shadow-sm">
+              <Briefcase className="h-4 w-4" /> Live Jobs
             </button>
           </div>
         </div>

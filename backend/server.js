@@ -38,6 +38,31 @@ app.get("/api/shared/:shareToken", async (req, res) => {
   }
 });
 
+
+// Adzuna job search proxy — keeps API keys server-side
+app.get("/api/jobs/search", async (req, res) => {
+  try {
+    const { keywords, location, page = 1 } = req.query;
+    const appId = process.env.ADZUNA_APP_ID;
+    const appKey = process.env.ADZUNA_APP_KEY;
+    if (!appId || !appKey) return res.status(500).json({ error: "Adzuna API not configured" });
+
+    const country = "in"; // India
+    const encodedKeywords = encodeURIComponent(keywords || "software engineer");
+    const encodedLocation = encodeURIComponent(location || "India");
+
+    const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/${page}?app_id=${appId}&app_key=${appKey}&results_per_page=10&what=${encodedKeywords}&where=${encodedLocation}&content-type=application/json`;
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Adzuna error: ${response.status}`);
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error("Adzuna search error:", err);
+    res.status(500).json({ error: err.message || "Job search failed" });
+  }
+});
+
 // Serve built frontend
 const distPath = path.join(__dirname, "../dist");
 app.use(express.static(distPath));
