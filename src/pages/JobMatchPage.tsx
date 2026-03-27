@@ -6,14 +6,15 @@ import { Loader2, Briefcase, MapPin, Building2, ExternalLink, Sparkles, Upload, 
 interface Job {
   id: string;
   title: string;
-  company: { display_name: string };
-  location: { display_name: string };
+  company: string;
+  location: string;
   description: string;
   salary_min?: number;
   salary_max?: number;
   created: string;
   redirect_url: string;
-  category: { label: string };
+  category: string;
+  source: string;
 }
 
 export default function JobMatchPage() {
@@ -135,7 +136,7 @@ Return ONLY valid JSON (no markdown):
       const res = await fetch(`/api/jobs/search?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}&page=1`);
       if (!res.ok) throw new Error('Search failed');
       const data = await res.json();
-      const jobList: Job[] = data.results || [];
+      const jobList: Job[] = (data.results || []);
       setJobs(jobList);
 
       // Calculate match scores using AI
@@ -147,7 +148,7 @@ RESUME SUMMARY:
 ${content.substring(0, 800)}
 
 JOBS:
-${jobList.slice(0, 10).map((j, i) => `${i}: ${j.title} at ${j.company.display_name} — ${j.description.substring(0, 150)}`).join('\n')}
+${jobList.slice(0, 10).map((j, i) => `${i}: ${j.title} at ${j.company} — ${j.description.substring(0, 150)}`).join('\n')}
 
 Return ONLY JSON (no markdown):
 { "scores": [<score0>, <score1>, <score2>, ...] }`;
@@ -296,9 +297,18 @@ Return ONLY JSON (no markdown):
 
         {!loading && jobs.length > 0 && (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg">{jobs.length} Live Jobs Found</h2>
-              <span className="text-xs text-muted-foreground">Sorted by match score</span>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <h2 className="font-semibold text-lg">{jobs.length} Jobs Found (Last 7 Days)</h2>
+              <div className="flex gap-2 flex-wrap">
+                {['Adzuna', 'Remotive (Remote)', 'The Muse'].map(src => {
+                  const count = jobs.filter(j => j.source === src).length;
+                  return count > 0 ? (
+                    <span key={src} className="text-xs bg-muted px-2 py-1 rounded-full text-muted-foreground">
+                      {src}: {count}
+                    </span>
+                  ) : null;
+                })}
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -320,8 +330,8 @@ Return ONLY JSON (no markdown):
                             )}
                           </div>
                           <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
-                            <span className="flex items-center gap-1"><Building2 className="h-3.5 w-3.5" />{job.company.display_name}</span>
-                            <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{job.location.display_name}</span>
+                            <span className="flex items-center gap-1"><Building2 className="h-3.5 w-3.5" />{job.company}</span>
+                            <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{job.location}</span>
                             {salary && <span className="flex items-center gap-1"><IndianRupee className="h-3.5 w-3.5" />{salary}</span>}
                             <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{timeAgo(job.created)}</span>
                           </div>
@@ -333,11 +343,14 @@ Return ONLY JSON (no markdown):
                       </div>
 
                       {/* Category tag */}
-                      {job.category?.label && (
-                        <div className="mt-2">
-                          <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{job.category.label}</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        {job.category && <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{job.category}</span>}
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          job.source === 'Adzuna' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                          job.source?.includes('Remotive') ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                          'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
+                        }`}>{job.source}</span>
+                      </div>
 
                       {/* Description preview */}
                       <p className="mt-3 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
@@ -349,7 +362,7 @@ Return ONLY JSON (no markdown):
             </div>
 
             <p className="text-center text-xs text-muted-foreground mt-6">
-              Jobs sourced in real-time from thousands of job boards via Adzuna
+              Jobs sourced from Adzuna · Remotive · The Muse — all posted within last 7 days
             </p>
           </div>
         )}
