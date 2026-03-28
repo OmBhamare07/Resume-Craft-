@@ -30,6 +30,7 @@ export default function JobMatchPage() {
   const [keywords, setKeywords] = useState('');
   const [matchScores, setMatchScores] = useState<Record<string, number>>({});
   const [searched, setSearched] = useState(false);
+  const [extractedKeywordsList, setExtractedKeywordsList] = useState<string[]>([]);
   const [useStoreResume, setUseStoreResume] = useState(false);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,18 +100,23 @@ Education: ${d.education.map(e => `${e.degree} from ${e.institute}`).join(' | ')
     setExtracting(true);
     setError('');
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    const prompt = `Extract the top 3-5 job search keywords from this resume for job matching. Focus on job titles and key technical skills.
+    const prompt = `Extract 3 to 5 job search keywords from this resume. Each keyword should be a specific job title or skill that would return good results on a job board.
 
 RESUME:
 ${content}
 
 Return ONLY valid JSON (no markdown):
 {
-  "primaryKeyword": "<most relevant job title e.g. 'Software Engineer' or 'Cloud Engineer'>",
-  "keywords": ["<keyword1>", "<keyword2>", "<keyword3>"],
-  "jobTitles": ["<title1>", "<title2>", "<title3>"],
-  "location": "<city from resume if found, else empty>"
-}`;
+  "keywords": ["<keyword1>", "<keyword2>", "<keyword3>", "<keyword4 if applicable>", "<keyword5 if applicable>"],
+  "location": "<city from resume if found, else empty string>"
+}
+
+Rules:
+- Extract exactly 3-5 keywords based on how strong the resume is
+- Use specific job titles like "Cloud Engineer" not just "Engineer"
+- Include both role titles AND key technologies (e.g. "AWS Developer", "React Developer")
+- Each keyword should be 1-3 words max, suitable for job board search
+- Order by most relevant first`;
 
     try {
       const res = await fetch(
@@ -121,7 +127,10 @@ Return ONLY valid JSON (no markdown):
       const raw = await res.json();
       const text = raw?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
       const result = JSON.parse(text.replace(/```json|```/g, '').trim());
-      setKeywords(result.primaryKeyword);
+      // Join all keywords with OR for broader search
+      const kws = (result.keywords || []).slice(0, 5);
+      setKeywords(kws.join(' OR '));
+      setExtractedKeywordsList(kws);
       if (result.location) setLocation(result.location + ', India');
     } catch { setError('Keyword extraction failed.'); }
     finally { setExtracting(false); }

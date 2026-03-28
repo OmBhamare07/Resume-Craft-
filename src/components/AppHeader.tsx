@@ -1,4 +1,4 @@
-import { FileText, LogOut, Clock, Sun, Moon } from 'lucide-react';
+import { FileText, LogOut, Clock, Sun, Moon, Crown, Shield } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useDarkMode } from '@/hooks/useDarkMode';
@@ -71,6 +71,17 @@ export const AppHeader = () => {
                       className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted transition">
                       <FileText className="h-4 w-4 text-muted-foreground" /> Cover Letters
                     </Link>
+                    {user.role === 'admin' ? (
+                      <Link to="/admin" onClick={() => setOpen(false)}
+                        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted transition text-purple-600 dark:text-purple-400">
+                        <Crown className="h-4 w-4" /> Admin Dashboard
+                      </Link>
+                    ) : (
+                      <Link to="/admin/request" onClick={() => setOpen(false)}
+                        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted transition">
+                        <Shield className="h-4 w-4 text-muted-foreground" /> Request Admin
+                      </Link>
+                    )}
                     <button onClick={() => { logout(); navigate('/login'); setOpen(false); }}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950 transition">
                       <LogOut className="h-4 w-4" /> Sign out

@@ -6,6 +6,7 @@ const cors = require("cors");
 const authRoutes = require("./routes/auth");
 const resumeRoutes = require("./routes/resumes");
 const coverLetterRoutes = require("./routes/coverLetters");
+const { router: adminRoutes } = require("./routes/admin");
 
 const app = express();
 app.use(cors());
@@ -15,6 +16,7 @@ app.use(express.json({ limit: "5mb" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/resumes", resumeRoutes);
 app.use("/api/cover-letters", coverLetterRoutes);
+app.use("/api/admin", adminRoutes);
 
 
 // Public shared resume endpoint (no auth)
@@ -146,6 +148,56 @@ app.get("/api/jobs/search", async (req, res) => {
   }
 
   res.json({ results: unique, total_count: unique.length, sources: [...new Set(unique.map(j => j.source))] });
+});
+
+
+// POST /api/admin/request — user requests admin access, sends email to super admin
+app.post("/api/admin/request", async (req, res) => {
+  try {
+    const { userId, name, email } = req.body;
+    if (!userId || !email) return res.status(400).json({ error: "Missing fields" });
+
+    const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+    const { DynamoDBDocumentClient, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
+    const client = new DynamoDBClient({ region: process.env.AWS_REGION || "us-east-1" });
+    const db = DynamoDBDocumentClient.from(client);
+
+    // Mark user as pending admin
+    await db.send(new UpdateCommand({
+      TableName: "resumecraft-users",
+      Key: { userId },
+      UpdateExpression: "SET adminStatus = :s",
+      ExpressionAttributeValues: { ":s": "pending" },
+    }));
+
+    // Send email to super admin
+    const nodemailer = require("nodemailer");
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+    });
+
+    const appUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: "ombhamare178@gmail.com",
+      subject: `ResumeCraft — Admin Access Request from ${name}`,
+      html: `
+        <h2>New Admin Access Request</h2>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>User ID:</strong> ${userId}</p>
+        <br/>
+        <p>To grant admin access, go to the admin dashboard and approve this user.</p>
+        <p><a href="${appUrl}/admin" style="background:#7c3aed;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;">Open Admin Dashboard</a></p>
+      `,
+    });
+
+    res.json({ success: true, message: "Request sent. You will be notified when approved." });
+  } catch (err) {
+    console.error("Admin request error:", err);
+    res.status(500).json({ error: err.message || "Request failed" });
+  }
 });
 
 // Serve built frontend

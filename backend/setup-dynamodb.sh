@@ -55,3 +55,8 @@ aws dynamodb create-table \
     AttributeName=letterId,KeyType=RANGE \
   --billing-mode PAY_PER_REQUEST \
   --region $REGION && echo "  ✅ resumecraft-cover-letters created"
+
+echo ""
+echo "▶ Note: To set yourself as super admin, run this command after setup:"
+echo "  aws dynamodb scan --table-name resumecraft-users --filter-expression 'email = :e' --expression-attribute-values '{\":e\":{\"S\":\"ombhamare178@gmail.com\"}}' --query 'Items[0].userId.S' --output text"
+echo "  Then: aws dynamodb update-item --table-name resumecraft-users --key '{\"userId\":{\"S\":\"YOUR_USER_ID\"}}' --update-expression 'SET #r = :r' --expression-attribute-names '{\"#r\":\"role\"}' --expression-attribute-values '{\":r\":{\"S\":\"admin\"}}'"
