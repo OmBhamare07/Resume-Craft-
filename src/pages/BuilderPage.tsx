@@ -20,10 +20,10 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-type SectionKey = 'personalInfo' | 'objective' | 'skills' | 'projects' | 'experience' | 'education';
+type SectionKey = 'personalInfo' | 'objective' | 'skills' | 'projects' | 'experience' | 'education' | 'certifications';
 
 const DEFAULT_SECTION_ORDER: SectionKey[] = [
-  'personalInfo', 'objective', 'skills', 'projects', 'experience', 'education'
+  'personalInfo', 'objective', 'skills', 'projects', 'experience', 'education', 'certifications'
 ];
 
 const SECTION_LABELS: Record<SectionKey, string> = {
@@ -33,6 +33,7 @@ const SECTION_LABELS: Record<SectionKey, string> = {
   projects: 'Projects',
   experience: 'Experience',
   education: 'Education',
+  certifications: 'Certifications',
 };
 
 // ── Sortable Section Wrapper ──────────────────────────────────────────
@@ -226,6 +227,7 @@ const BuilderPage = () => {
                   <Textarea className="mt-1" rows={2} value={p.description} onChange={e => store.updateProject(p.id, { description: e.target.value })} />
                 </div>
                 <Field label="Technologies" value={p.technologies} onChange={v => store.updateProject(p.id, { technologies: v })} />
+                <Field label="GitHub URL (optional)" value={p.githubUrl || ''} onChange={v => store.updateProject(p.id, { githubUrl: v })} />
               </div>
             ))}
           </>
@@ -243,6 +245,20 @@ const BuilderPage = () => {
                   <Textarea className="mt-1" rows={2} value={e.responsibilities} onChange={e2 => store.updateExperience(e.id, { responsibilities: e2.target.value })} />
                 </div>
                 <Field label="Time Period" value={e.timePeriod} onChange={v => store.updateExperience(e.id, { timePeriod: v })} />
+              </div>
+            ))}
+          </>
+        );
+      case 'certifications':
+        return (
+          <>
+            {(data.certifications || []).map(c => (
+              <div key={c.id} className="relative rounded border border-border p-3">
+                <button onClick={() => store.removeCertification(c.id)} className="absolute right-2 top-2 text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                <Field label="Certification Name" value={c.name} onChange={v => store.updateCertification(c.id, { name: v })} />
+                <Field label="Issuing Organization" value={c.issuer} onChange={v => store.updateCertification(c.id, { issuer: v })} />
+                <Field label="Date (e.g. March 2024)" value={c.date} onChange={v => store.updateCertification(c.id, { date: v })} />
+                <Field label="Credential URL (optional)" value={c.credentialUrl || ''} onChange={v => store.updateCertification(c.id, { credentialUrl: v })} />
               </div>
             ))}
           </>
@@ -271,7 +287,22 @@ const BuilderPage = () => {
       case 'skills': return { onAdd: store.addSkillGroup, addLabel: 'Add Skill Group' };
       case 'projects': return { onAdd: store.addProject, addLabel: 'Add Project' };
       case 'experience': return { onAdd: store.addExperience, addLabel: 'Add Experience' };
+      case 'certifications':
+        return (
+          <>
+            {(data.certifications || []).map(c => (
+              <div key={c.id} className="relative rounded border border-border p-3">
+                <button onClick={() => store.removeCertification(c.id)} className="absolute right-2 top-2 text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                <Field label="Certification Name" value={c.name} onChange={v => store.updateCertification(c.id, { name: v })} />
+                <Field label="Issuing Organization" value={c.issuer} onChange={v => store.updateCertification(c.id, { issuer: v })} />
+                <Field label="Date (e.g. March 2024)" value={c.date} onChange={v => store.updateCertification(c.id, { date: v })} />
+                <Field label="Credential URL (optional)" value={c.credentialUrl || ''} onChange={v => store.updateCertification(c.id, { credentialUrl: v })} />
+              </div>
+            ))}
+          </>
+        );
       case 'education': return { onAdd: store.addEducation, addLabel: 'Add Education' };
+      case 'certifications': return { onAdd: store.addCertification, addLabel: 'Add Certification' };
       default: return {};
     }
   };

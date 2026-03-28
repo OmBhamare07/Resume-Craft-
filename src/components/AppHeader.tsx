@@ -1,4 +1,4 @@
-import { FileText, LogOut, Clock, Sun, Moon, Crown, Shield } from 'lucide-react';
+import { FileText, LogOut, Clock, Sun, Moon, Crown, Shield, TrendingUp } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useDarkMode } from '@/hooks/useDarkMode';
@@ -66,6 +66,10 @@ export const AppHeader = () => {
                     <Link to="/history" onClick={() => setOpen(false)}
                       className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted transition">
                       <Clock className="h-4 w-4 text-muted-foreground" /> My Resumes
+                    </Link>
+                    <Link to="/score-tracker" onClick={() => setOpen(false)}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted transition">
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" /> Score Tracker
                     </Link>
                     <Link to="/cover-letters" onClick={() => setOpen(false)}
                       className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted transition">

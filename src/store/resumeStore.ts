@@ -19,6 +19,7 @@ export interface Project {
   name: string;
   description: string;
   technologies: string;
+  githubUrl: string;
 }
 
 export interface Experience {
@@ -27,6 +28,14 @@ export interface Experience {
   company: string;
   responsibilities: string;
   timePeriod: string;
+}
+
+export interface Certification {
+  id: string;
+  name: string;
+  issuer: string;
+  date: string;
+  credentialUrl: string;
 }
 
 export interface Education {
@@ -44,6 +53,7 @@ export interface ResumeData {
   projects: Project[];
   experience: Experience[];
   education: Education[];
+  certifications: Certification[];
 }
 
 export interface Template {
@@ -93,6 +103,7 @@ const defaultResume: ResumeData = {
   projects: [],
   experience: [],
   education: [],
+  certifications: [],
 };
 
 const mockResume: ResumeData = {
@@ -120,6 +131,7 @@ const mockResume: ResumeData = {
   education: [
     { id: '1', degree: 'B.S. Computer Science', institute: 'Stanford University', period: '2015 – 2019', marks: 'GPA: 3.8/4.0' },
   ],
+  certifications: [],
 };
 
 interface ResumeStore {
@@ -146,6 +158,9 @@ interface ResumeStore {
   addEducation: () => void;
   updateEducation: (id: string, data: Partial<Education>) => void;
   removeEducation: (id: string) => void;
+  addCertification: () => void;
+  updateCertification: (id: string, data: Partial<Certification>) => void;
+  removeCertification: (id: string) => void;
   loadMockData: () => void;
   resetData: () => void;
 }
@@ -189,6 +204,12 @@ export const useResumeStore = create<ResumeStore>((set) => ({
     set((s) => ({ resumeData: { ...s.resumeData, education: s.resumeData.education.map((e) => (e.id === id ? { ...e, ...data } : e)) } })),
   removeEducation: (id) =>
     set((s) => ({ resumeData: { ...s.resumeData, education: s.resumeData.education.filter((e) => e.id !== id) } })),
+  addCertification: () =>
+    set((s) => ({ resumeData: { ...s.resumeData, certifications: [...(s.resumeData.certifications || []), { id: genId(), name: '', issuer: '', date: '', credentialUrl: '' }] } })),
+  updateCertification: (id, data) =>
+    set((s) => ({ resumeData: { ...s.resumeData, certifications: (s.resumeData.certifications || []).map((c) => (c.id === id ? { ...c, ...data } : c)) } })),
+  removeCertification: (id) =>
+    set((s) => ({ resumeData: { ...s.resumeData, certifications: (s.resumeData.certifications || []).filter((c) => c.id !== id) } })),
   loadMockData: () => set({ resumeData: mockResume, isUsingMockData: true }),
   resetData: () => set({ resumeData: defaultResume, isUsingMockData: false }),
 }));

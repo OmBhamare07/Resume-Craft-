@@ -27,7 +27,8 @@ export default function JobMatchPage() {
   const [loading, setLoading] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState('');
-  const [keywords, setKeywords] = useState('');
+  const [activeKeywords, setActiveKeywords] = useState<string[]>([]);
+  const [customKeyword, setCustomKeyword] = useState('');
   const [matchScores, setMatchScores] = useState<Record<string, number>>({});
   const [searched, setSearched] = useState(false);
   const [extractedKeywordsList, setExtractedKeywordsList] = useState<string[]>([]);
@@ -129,7 +130,7 @@ Rules:
       const result = JSON.parse(text.replace(/```json|```/g, '').trim());
       // Join all keywords with OR for broader search
       const kws = (result.keywords || []).slice(0, 5);
-      setKeywords(kws.join(' OR '));
+      setActiveKeywords(kws);
       setExtractedKeywordsList(kws);
       if (result.location) setLocation(result.location + ', India');
     } catch { setError('Keyword extraction failed.'); }
@@ -137,12 +138,13 @@ Rules:
   };
 
   const searchJobs = async () => {
-    if (!keywords.trim()) { setError('Please extract keywords first or enter them manually.'); return; }
+    if (activeKeywords.length === 0 && !customKeyword.trim()) { setError('Please extract or add keywords first.'); return; }
+    const allKws = [...activeKeywords, ...(customKeyword.trim() ? [customKeyword.trim()] : [])];
     setLoading(true);
     setError('');
     setSearched(true);
     try {
-      const res = await fetch(`/api/jobs/search?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}&page=1`);
+      const res = await fetch(`/api/jobs/search?keywords=${encodeURIComponent(allKws.join(' OR '))}&location=${encodeURIComponent(location)}&page=1`);
       if (!res.ok) throw new Error('Search failed');
       const data = await res.json();
       const jobList: Job[] = (data.results || []);
@@ -260,10 +262,30 @@ Return ONLY JSON (no markdown):
           <h2 className="text-sm font-semibold mb-4 flex items-center gap-2"><Search className="h-4 w-4 text-primary" /> Step 2: Extract Keywords & Search</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
             <div className="sm:col-span-2">
-              <label className="text-xs text-muted-foreground mb-1 block">Job Keywords (auto-extracted or type manually)</label>
-              <input value={keywords} onChange={e => setKeywords(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                placeholder="e.g. Cloud Engineer, AWS, DevOps..." />
+              <label className="text-xs text-muted-foreground mb-1 block">Job Keywords (auto-extracted or add manually)</label>
+              {/* Keyword pills */}
+              <div className="min-h-[42px] flex flex-wrap gap-2 items-center rounded-xl border border-border bg-background px-3 py-2">
+                {activeKeywords.map((kw, i) => (
+                  <span key={i} className="flex items-center gap-1.5 rounded-full bg-blue-100 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300">
+                    {kw}
+                    <button onClick={() => setActiveKeywords(prev => prev.filter((_, idx) => idx !== i))}
+                      className="hover:text-red-500 transition ml-0.5 font-bold">×</button>
+                  </span>
+                ))}
+                <input
+                  value={customKeyword}
+                  onChange={e => setCustomKeyword(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && customKeyword.trim()) {
+                      setActiveKeywords(prev => [...prev, customKeyword.trim()]);
+                      setCustomKeyword('');
+                    }
+                  }}
+                  className="flex-1 min-w-[120px] bg-transparent text-sm outline-none"
+                  placeholder={activeKeywords.length === 0 ? "Type keyword + Enter..." : "Add more..."}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Click × to remove · Press Enter to add custom keyword</p>
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Location</label>
@@ -280,9 +302,9 @@ Return ONLY JSON (no markdown):
               className="flex items-center gap-2 rounded-xl border border-border px-5 py-2.5 text-sm font-semibold hover:bg-muted transition disabled:opacity-40">
               {extracting ? <><Loader2 className="h-4 w-4 animate-spin" /> Extracting...</> : <><Sparkles className="h-4 w-4 text-purple-500" /> Auto-Extract Keywords</>}
             </button>
-            <button onClick={searchJobs} disabled={loading || !keywords.trim()}
+            <button onClick={searchJobs} disabled={loading || (activeKeywords.length === 0 && !customKeyword.trim())}
               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2.5 text-sm font-bold text-white hover:opacity-90 transition disabled:opacity-40 shadow-sm">
-              {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Searching live jobs...</> : <><Briefcase className="h-4 w-4" /> Find Matching Jobs</>}
+              {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Searching live jobs...</> : <><Briefcase className="h-4 w-4" /> Find Matching Jobs ({activeKeywords.length + (customKeyword.trim() ? 1 : 0)} keywords)</>}
             </button>
           </div>
         </div>

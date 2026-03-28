@@ -22,6 +22,9 @@ import UploadResumePage from "./pages/UploadResumePage.tsx";
 import JobMatchPage from "./pages/JobMatchPage.tsx";
 import AdminPage from "./pages/AdminPage.tsx";
 import AdminRequestPage from "./pages/AdminRequestPage.tsx";
+import ScoreTrackerPage from "./pages/ScoreTrackerPage.tsx";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage.tsx";
+import ResetPasswordPage from "./pages/ResetPasswordPage.tsx";
 import { ResumeChatbot } from "./components/ResumeChatbot.tsx";
 import { ATSChecker } from "./components/ATSChecker.tsx";
 import { useResumeStore } from "./store/resumeStore.ts";
@@ -56,6 +59,8 @@ const App = () => (
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/shared/:shareToken" element={<SharedResumePage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Protected */}
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
@@ -67,6 +72,7 @@ const App = () => (
             <Route path="/job-match" element={<ProtectedRoute><JobMatchPage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             <Route path="/admin/request" element={<ProtectedRoute><AdminRequestPage /></ProtectedRoute>} />
+            <Route path="/score-tracker" element={<ProtectedRoute><ScoreTrackerPage /></ProtectedRoute>} />
             <Route path="/preview/:templateId" element={<ProtectedRoute><TemplatePreviewPage /></ProtectedRoute>} />
             <Route path="/builder/:templateId" element={<ProtectedRoute><BuilderPage /></ProtectedRoute>} />
             <Route path="/resume/:templateId" element={<ProtectedRoute><ResumePreviewPage /></ProtectedRoute>} />

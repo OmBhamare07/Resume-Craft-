@@ -20,7 +20,15 @@ export const ModernTemplate = ({ data, sectionOrder = DEFAULT_ORDER }: TemplateP
         {data.personalInfo.email && <span>✉ {data.personalInfo.email}</span>}
         {data.personalInfo.phone && <span>📞 {data.personalInfo.phone}</span>}
         {data.personalInfo.location && <span>📍 {data.personalInfo.location}</span>}
-        {data.personalInfo.linkedinUrl && <span>🔗 {data.personalInfo.linkedinUrl}</span>}
+        {data.personalInfo.linkedinUrl && (
+          <span>
+            🔗 <a href={data.personalInfo.linkedinUrl.startsWith('http') ? data.personalInfo.linkedinUrl : `https://${data.personalInfo.linkedinUrl}`}
+              target="_blank" rel="noopener noreferrer"
+              style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>
+              {data.personalInfo.linkedinUrl.replace(/^https?:\/\//, '').replace('www.linkedin.com/in/', 'LinkedIn/').replace('linkedin.com/in/', 'LinkedIn/')}
+            </a>
+          </span>
+        )}
       </div>
     </div>
 
@@ -320,6 +328,23 @@ function renderMinimalSection(key: SectionKey, data: ResumeData) {
         ))}
       </MinSection>
     ) : null;
+    case 'certifications':
+      return data.certifications && data.certifications.length > 0 ? (
+        <Section key={key} title="CERTIFICATIONS" color="#2563eb">
+          {data.certifications.map((c) => (
+            <div key={c.id} style={{ marginBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <div>
+                <span style={{ fontWeight: 600 }}>
+                  {c.credentialUrl ? <a href={c.credentialUrl} target="_blank" rel="noopener noreferrer"
+                    style={{ color: '#1e3a8a', textDecoration: 'none' }}>{c.name}</a> : c.name}
+                </span>
+                {c.issuer && <span style={{ color: '#555', fontSize: '12px' }}> — {c.issuer}</span>}
+              </div>
+              {c.date && <span style={{ fontSize: '11px', color: '#666' }}>{c.date}</span>}
+            </div>
+          ))}
+        </Section>
+      ) : null;
     default: return null;
   }
 }
@@ -471,7 +496,11 @@ function renderModernSection(key: SectionKey, data: ResumeData) {
         <Section key={key} title="PROJECTS" color="#2563eb">
           {data.projects.map((p) => (
             <div key={p.id} style={{ marginBottom: '10px' }}>
-              <div style={{ fontWeight: 600 }}>{p.name}</div>
+              <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {p.name}
+                {p.githubUrl && <a href={p.githubUrl} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: '11px', color: '#2563eb', textDecoration: 'none', fontWeight: 400 }}>GitHub ↗</a>}
+              </div>
               <p style={{ margin: '3px 0', color: '#333' }}>{p.description}</p>
               {p.technologies && <div style={{ fontSize: '11px', color: '#2563eb' }}>Tech Stack: {p.technologies}</div>}
             </div>
