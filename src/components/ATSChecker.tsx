@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { ResumeData, useResumeStore } from '@/store/resumeStore';
 
-interface ATSCheckerProps { data: ResumeData; resumeId?: string | null; token?: string | null; }
+interface ATSCheckerProps { data: ResumeData; resumeId?: string | null; token?: string | null; onScore?: (score: number, jobRole: string) => void; }
 
 interface ATSResult {
   overallScore: number;
@@ -61,7 +61,7 @@ const JOB_ROLES: Record<string, { title: string; category: string }> = {
 
 const JOB_CATEGORIES = [...new Set(Object.values(JOB_ROLES).map(j => j.category))];
 
-export const ATSChecker = ({ data, resumeId, token }: ATSCheckerProps) => {
+export const ATSChecker = ({ data, resumeId, token, onScore }: ATSCheckerProps) => {
   const store = useResumeStore();
 
   const applyKeyword = (keyword: string) => {
@@ -198,22 +198,10 @@ Return ONLY a valid JSON object (no markdown, no explanation):
       const parsed: ATSResult = JSON.parse(clean);
       setResult(parsed);
 
-      // Save score to backend for tracker — retry up to 3 times
-      if (resumeId && token) {
-        let saved = false;
-        for (let attempt = 0; attempt < 3 && !saved; attempt++) {
-          try {
-            const saveRes = await fetch(`/api/resumes/${resumeId}/scores`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-              body: JSON.stringify({ score: parsed.overallScore, jobRole: selectedJob || 'General' }),
-            });
-            if (saveRes.ok) { saved = true; setScoreSaved(true); }
-            else if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
-          } catch {
-            if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
-          }
-        }
+      // Notify parent to save score (parent has resumeId and handles retry)
+      if (onScore) {
+        onScore(parsed.overallScore, selectedJob || 'General');
+        setScoreSaved(true);
       }
       setStep('result');
       // Auto-expand lowest scoring section

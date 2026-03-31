@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { useEffect, useRef, useCallback } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -37,14 +38,46 @@ const FloatingWidgets = () => {
   const resumeData = useResumeStore(s => s.resumeData);
   const currentResumeId = useResumeStore(s => s.currentResumeId);
   const { token } = useAuth();
+  const pendingScore = useRef<{ score: number; jobRole: string } | null>(null);
   const showATS = location.pathname.startsWith('/builder') || location.pathname.startsWith('/resume');
   const isAuthPage = ['/login', '/signup', '/verify-email'].includes(location.pathname);
   const isSharedPage = location.pathname.startsWith('/shared');
+
+  const saveScore = useCallback(async (resumeId: string, score: number, jobRole: string) => {
+    try {
+      const res = await fetch(`/api/resumes/${resumeId}/scores`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ score, jobRole }),
+      });
+      if (res.ok) {
+        pendingScore.current = null;
+      }
+    } catch {}
+  }, [token]);
+
+  // When resumeId becomes available, flush any pending score
+  useEffect(() => {
+    if (currentResumeId && pendingScore.current && token) {
+      const { score, jobRole } = pendingScore.current;
+      saveScore(String(currentResumeId), score, jobRole);
+    }
+  }, [currentResumeId, token, saveScore]);
+
+  const handleScore = useCallback((score: number, jobRole: string) => {
+    if (currentResumeId && token) {
+      saveScore(String(currentResumeId), score, jobRole);
+    } else {
+      // Store as pending — will be saved once resumeId is available after auto-save
+      pendingScore.current = { score, jobRole };
+    }
+  }, [currentResumeId, token, saveScore]);
+
   if (isAuthPage || isSharedPage) return null;
   return (
     <>
       <ResumeChatbot />
-      {showATS && <ATSChecker data={resumeData} resumeId={currentResumeId ? String(currentResumeId) : null} token={token} />}
+      {showATS && <ATSChecker data={resumeData} resumeId={currentResumeId ? String(currentResumeId) : null} token={token} onScore={handleScore} />}
     </>
   );
 };
