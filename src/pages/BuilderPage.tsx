@@ -86,6 +86,7 @@ const BuilderPage = () => {
   const store = useResumeStore();
   const selectedFont = useResumeStore(s => s.selectedFont);
   const setSelectedFont = useResumeStore(s => s.setSelectedFont);
+  const setCurrentResumeId = useResumeStore(s => s.setCurrentResumeId);
   const { token } = useAuth();
   const location = useLocation();
   const tailoredState = location.state as { tailored?: boolean; jobTitle?: string; atsKeywordsAdded?: string[] } | null;
@@ -98,6 +99,11 @@ const BuilderPage = () => {
   const [jobType, setJobType] = useState('');
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstLoad = useRef(true);
+
+  // Sync resumeId to global store so ATSChecker can save scores
+  useEffect(() => {
+    if (resumeId) setCurrentResumeId(resumeId as any);
+  }, [resumeId]);
 
   // dnd-kit sensors — supports both mouse and touch
   const sensors = useSensors(
@@ -158,7 +164,7 @@ const BuilderPage = () => {
           body: JSON.stringify({ templateId, resumeData: data, name, jobType }),
         });
         const created = await res.json();
-        if (created.resumeId) setResumeId(created.resumeId);
+        if (created.resumeId) { setResumeId(created.resumeId); setCurrentResumeId(created.resumeId as any); }
       }
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 2500);

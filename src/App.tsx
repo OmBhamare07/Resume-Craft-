@@ -28,12 +28,15 @@ import ResetPasswordPage from "./pages/ResetPasswordPage.tsx";
 import { ResumeChatbot } from "./components/ResumeChatbot.tsx";
 import { ATSChecker } from "./components/ATSChecker.tsx";
 import { useResumeStore } from "./store/resumeStore.ts";
+import { useAuth } from "./context/AuthContext.tsx";
 
 const queryClient = new QueryClient();
 
 const FloatingWidgets = () => {
   const location = useLocation();
   const resumeData = useResumeStore(s => s.resumeData);
+  const currentResumeId = useResumeStore(s => s.currentResumeId);
+  const { token } = useAuth();
   const showATS = location.pathname.startsWith('/builder') || location.pathname.startsWith('/resume');
   const isAuthPage = ['/login', '/signup', '/verify-email'].includes(location.pathname);
   const isSharedPage = location.pathname.startsWith('/shared');
@@ -41,7 +44,7 @@ const FloatingWidgets = () => {
   return (
     <>
       <ResumeChatbot />
-      {showATS && <ATSChecker data={resumeData} />}
+      {showATS && <ATSChecker data={resumeData} resumeId={currentResumeId ? String(currentResumeId) : null} token={token} />}
     </>
   );
 };

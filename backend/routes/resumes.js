@@ -79,6 +79,28 @@ router.delete("/:resumeId", async (req, res) => {
 
 module.exports = router;
 
+// POST /api/resumes/generate-pdf
+router.post("/generate-pdf", async (req, res) => {
+  try {
+    const { templateId, resumeData, fontFamily, sectionOrder } = req.body;
+    if (!templateId || !resumeData) {
+      return res.status(400).json({ error: "templateId and resumeData required" });
+    }
+    const { generatePDF } = require("../services/pdfGenerator");
+    const pdfBuffer = await generatePDF(templateId, resumeData, fontFamily || "Arial, sans-serif", sectionOrder);
+    const name = resumeData?.personalInfo?.fullName || "Resume";
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${name.replace(/\s+/g, "_")}_Resume.pdf"`,
+      "Content-Length": pdfBuffer.length,
+    });
+    res.end(pdfBuffer);
+  } catch (err) {
+    console.error("PDF generation error:", err);
+    res.status(500).json({ error: err.message || "PDF generation failed" });
+  }
+});
+
 // PUT /api/resumes/:resumeId/share — generate share token
 router.put("/:resumeId/share", async (req, res) => {
   try {
@@ -111,37 +133,22 @@ router.put("/:resumeId/unshare", async (req, res) => {
 router.put("/:resumeId/scores", async (req, res) => {
   try {
     const { score, jobRole } = req.body;
+    if (score === undefined || score === null) return res.status(400).json({ error: "Score is required" });
     const resume = await db.getResume(req.user.userId, req.params.resumeId);
-    if (!resume) return res.status(404).json({ error: "Resume not found" });
-    const scores = resume.atsScores || [];
-    scores.push({ score, jobRole, date: new Date().toISOString() });
-    // Keep last 20 scores
+    if (!resume) {
+      console.error(`Score save: resume not found for userId=${req.user.userId} resumeId=${req.params.resumeId}`);
+      return res.status(404).json({ error: "Resume not found" });
+    }
+    const scores = Array.isArray(resume.atsScores) ? resume.atsScores : [];
+    scores.push({ score: Number(score), jobRole: jobRole || 'General', date: new Date().toISOString() });
     const trimmed = scores.slice(-20);
     await db.updateResume(req.user.userId, req.params.resumeId, { atsScores: trimmed });
-    res.json({ success: true });
+    console.log(`Score saved: ${score} for resumeId=${req.params.resumeId}`);
+    res.json({ success: true, totalScores: trimmed.length });
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    console.error("Score save error:", err);
+    res.status(500).json({ error: err.message || "Server error" });
   }
 });
 
-// POST /api/resumes/generate-pdf
-router.post("/generate-pdf", async (req, res) => {
-  try {
-    const { templateId, resumeData, fontFamily, sectionOrder } = req.body;
-    if (!templateId || !resumeData) {
-      return res.status(400).json({ error: "templateId and resumeData required" });
-    }
-    const { generatePDF } = require("../services/pdfGenerator");
-    const pdfBuffer = await generatePDF(templateId, resumeData, fontFamily || "Arial, sans-serif", sectionOrder);
-    const name = resumeData?.personalInfo?.fullName || "Resume";
-    res.set({
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${name.replace(/\s+/g, "_")}_Resume.pdf"`,
-      "Content-Length": pdfBuffer.length,
-    });
-    res.end(pdfBuffer);
-  } catch (err) {
-    console.error("PDF generation error:", err);
-    res.status(500).json({ error: err.message || "PDF generation failed" });
-  }
-});
+

@@ -2,11 +2,11 @@ import { useState } from 'react';
 import {
   ShieldCheck, X, ChevronDown, ChevronUp, AlertCircle,
   CheckCircle2, Info, Zap, TrendingUp, Briefcase,
-  FileText, Loader2, BookOpen, Cpu, AlignLeft, Plus, Wand2
+  FileText, Loader2, BookOpen, Cpu, AlignLeft, Plus, Wand2, BarChart3
 } from 'lucide-react';
 import { ResumeData, useResumeStore } from '@/store/resumeStore';
 
-interface ATSCheckerProps { data: ResumeData; }
+interface ATSCheckerProps { data: ResumeData; resumeId?: string | null; token?: string | null; }
 
 interface ATSResult {
   overallScore: number;
@@ -61,7 +61,7 @@ const JOB_ROLES: Record<string, { title: string; category: string }> = {
 
 const JOB_CATEGORIES = [...new Set(Object.values(JOB_ROLES).map(j => j.category))];
 
-export const ATSChecker = ({ data }: ATSCheckerProps) => {
+export const ATSChecker = ({ data, resumeId, token }: ATSCheckerProps) => {
   const store = useResumeStore();
 
   const applyKeyword = (keyword: string) => {
@@ -98,6 +98,7 @@ export const ATSChecker = ({ data }: ATSCheckerProps) => {
   const [jobDescription, setJobDescription] = useState('');
   const [showJD, setShowJD] = useState(false);
   const [step, setStep] = useState<'setup' | 'result'>('setup');
+  const [scoreSaved, setScoreSaved] = useState(false);
 
   const buildResumeText = () => {
     const d = data;
@@ -129,6 +130,7 @@ ${d.education.map(e => `- ${e.degree} from ${e.institute} (${e.period}) | ${e.ma
     if (!selectedJob) return;
     setLoading(true);
     setError('');
+    setScoreSaved(false);
 
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     const jobTitle = JOB_ROLES[selectedJob]?.title || selectedJob;
@@ -195,6 +197,24 @@ Return ONLY a valid JSON object (no markdown, no explanation):
       const clean = text.replace(/```json|```/g, '').trim();
       const parsed: ATSResult = JSON.parse(clean);
       setResult(parsed);
+
+      // Save score to backend for tracker — retry up to 3 times
+      if (resumeId && token) {
+        let saved = false;
+        for (let attempt = 0; attempt < 3 && !saved; attempt++) {
+          try {
+            const saveRes = await fetch(`/api/resumes/${resumeId}/scores`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ score: parsed.overallScore, jobRole: selectedJob || 'General' }),
+            });
+            if (saveRes.ok) { saved = true; setScoreSaved(true); }
+            else if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
+          } catch {
+            if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
+          }
+        }
+      }
       setStep('result');
       // Auto-expand lowest scoring section
       const sectionEntries = Object.entries(parsed.sections);
@@ -335,6 +355,16 @@ Return ONLY a valid JSON object (no markdown, no explanation):
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-base font-bold mb-0.5" style={{ color: scoreColor(result.overallScore) }}>{result.grade}</div>
+                      {scoreSaved && resumeId && (
+                        <div className="flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400 mt-1">
+                          <BarChart3 className="h-3 w-3" /> Score saved to tracker
+                        </div>
+                      )}
+                      {!resumeId && (
+                        <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+                          Save resume to track scores
+                        </div>
+                      )}
                       <div className="text-xs text-muted-foreground mb-2">{JOB_ROLES[selectedJob]?.title} ATS Score</div>
                       {Object.entries(result.sections).map(([key, sec]) => (
                         <div key={key} className="flex items-center gap-1.5 mb-1">
