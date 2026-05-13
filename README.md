@@ -6,6 +6,7 @@ ATS Resume Builder with login, resume history, AI chatbot, and ATS checker.
 - **Frontend**: React + Vite + Tailwind
 - **Backend**: Express.js + SQLite (runs on same EC2 — no extra DB cost)
 - **Auth**: JWT (30-day tokens)
+- hello, welcome to Resume Craft
 
 ---
 
